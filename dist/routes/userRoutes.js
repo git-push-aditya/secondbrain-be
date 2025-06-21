@@ -1,0 +1,34 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const jwstAuth_1 = __importDefault(require("../middlewares/jwstAuth"));
+const zodMiddleware_1 = require("../middlewares/zodMiddleware");
+const userController_1 = require("../controllers/userController");
+const checkContentCollection_1 = require("../middlewares/checkContentCollection");
+const router = (0, express_1.Router)();
+router.post('/addcontent', zodMiddleware_1.zodAddContent, jwstAuth_1.default, checkContentCollection_1.checkContentCollectionReference, userController_1.addContent); //*** */
+router.post('/deletecontent', zodMiddleware_1.zodDeleteContent, jwstAuth_1.default, userController_1.deleteContent); //
+router.get('/fetchcontents', zodMiddleware_1.zodFetchContent, jwstAuth_1.default, checkContentCollection_1.checkContentCollectionReference, userController_1.fetchContent); //  
+router.patch('/generatelink', zodMiddleware_1.meZod, jwstAuth_1.default, checkContentCollection_1.checkContentCollectionReference, userController_1.generateSharableLink); //
+router.post('/createcollection', zodMiddleware_1.zodCreateCollection, jwstAuth_1.default, userController_1.newCollection); //****** */
+router.post('/deletecollection', zodMiddleware_1.meZod, jwstAuth_1.default, checkContentCollection_1.checkContentCollectionReference, userController_1.deleteCollection);
+//used to fetch shared contet
+router.get('/sharedbrain', zodMiddleware_1.zodSharableLink, userController_1.sharedContent); //
+router.get('/paginatedshareddata', zodMiddleware_1.zodSharedContent, userController_1.pagedSharedConetnt);
+router.get('/fetchtaggedcontent', zodMiddleware_1.zodTaggedContent, jwstAuth_1.default, userController_1.fetchTaggedContent); //  
+router.post('/removeshare', zodMiddleware_1.meZod, jwstAuth_1.default, checkContentCollection_1.checkContentCollectionReference, userController_1.deleteSharedLink); //
+router.get('/communitycollectionlist', zodMiddleware_1.meZod, jwstAuth_1.default, userController_1.getCommCollList); ///****
+//have to add the gpt enpoint
+//working: 
+/*
+    -fetch query
+    -convert to embedding
+    -have a vector db which has embedddings of the contents of all the users (received using a web crawler: something juicy soup)
+    -get cosine similarity and send top 4 / 2 / 1 along with query to gemini api //free
+    -receive the output and send it to user
+
+*/
+exports.default = router;
