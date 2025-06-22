@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "ContentTags" ALTER COLUMN "assignedAt" DROP NOT NULL;
+
+-- AlterTable
+ALTER TABLE "link" ADD COLUMN     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

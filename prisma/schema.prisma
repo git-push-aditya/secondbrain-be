@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Type {
+  TWITTER
+  YOUTUBE
+  REDDIT
+  INSTAGRAM
+  WEB
+}
+
+model user {
+  id         Int          @id @default(autoincrement())
+  userName   String       @unique
+  password   String
+  email      String?      @unique
+  createdAt  DateTime?    @default(now())
+  link       link[]
+  content    content[]
+  collection collection[]
+}
+
+
+model content {
+  id         Int                 @id @default(autoincrement())
+  title      String
+  hyperlink  String
+  note       String?
+  createdAt  DateTime?           @default(now())
+  type       Type                @default(WEB)
+  user       user                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int
+  tags       ContentTags[]
+  collection contentCollection[]
+
+
+  @@index([userId])
+}
+
+model collection {
+  id      Int                 @id @default(autoincrement())
+  name    String              @default("Dashboard")
+  shared  Boolean             @default(false)
+  desc    String?              
+  user    user                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId  Int
+  content contentCollection[]
+  link    link[]
+
+  @@unique([name, userId])
+}
+
+model contentCollection {
+  collectionId Int
+  contentId    Int
+  collection   collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  content      content    @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@id([contentId, collectionId]) 
+}
+
+model tags {
+  id     Int     @id @default(autoincrement())
+  title  String  @unique    
+  content ContentTags[]     
+}
+
+model ContentTags {
+  id         Int       @id @default(autoincrement())
+  content    content   @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  contentId  Int
+  tag        tags      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId      Int 
+
+  @@unique([contentId, tagId])
+}
+
+model link {
+  id           Int        @id @default(autoincrement())
+  hash         String
+  user         user       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collectionId Int        @unique
+  collection   collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  userId       Int         
+  createdAt    DateTime?  @default(now())
+
+  @@unique([hash])
+  @@index([userId, collectionId,hash])
+}
