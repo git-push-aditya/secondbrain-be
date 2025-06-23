@@ -16,6 +16,7 @@ exports.deleteCollection = exports.getCommCollList = exports.newCollection = exp
 const handleErrors_1 = __importDefault(require("../utils/handleErrors"));
 const generateHash_1 = require("../utils/generateHash");
 const prismaClient_1 = __importDefault(require("../prismaClient"));
+const server_1 = __importDefault(require("../server"));
 const addContent = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { title, hyperlink, note, type, existingTags, newTags, userId, collectionId } = req.body;
     console.log('reached');
@@ -122,6 +123,7 @@ const addContent = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             return { newContent, tagsList };
         }));
         const enrichedContent = Object.assign(Object.assign({}, newContent), { tags: tagsList });
+        yield server_1.default.lPush('embedQueue', JSON.stringify(enrichedContent));
         res.status(200).json({
             status: "success",
             payload: {
@@ -210,6 +212,11 @@ const fetchContent = (req, res) => __awaiter(void 0, void 0, void 0, function* (
                     }
                 }
             },
+            orderBy: {
+                content: {
+                    createdAt: "desc"
+                }
+            }
         });
         res.status(200).json({
             status: "success",

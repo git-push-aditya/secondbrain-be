@@ -8,16 +8,20 @@ import verifyJwt from "./middlewares/jwstAuth";
 import { restoreMe } from "./controllers/me";
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+import { createClient } from 'redis';
+
 dotenv.config();
+const redisClient  = createClient();
+redisClient.on('error',(err)=>{
+  console.error('redis client error : ',err);
+})
+redisClient.on('reconnecting', () => {
+  console.warn('Reconnecting to Redis...');
+});
+
 
 
 const app = express();
-
-
-
-//create a new endpoint in users route such that tagged content are fetched only if a the content is tagged with all the mentioned tags    //i think the union field is for that in the tagged content endpoint
-
-//our current sharable brain does is it shares the whole brain;but what if user only want to create a brain with all the relevent links and share it(i.e selected subset// a small mini brain there for sharing and not the whole brain// kinda like publishing a chapter and not hte whole book)
 
 
 app.use(cors({
@@ -34,8 +38,18 @@ app.use('/user',userRoutes);
 
 app.get('/me',meZod,verifyJwt,restoreMe);
 
-app.listen(2233, () => {
-    console.log("Server started at port 2233");
-});
+const startServer = async () => {
+  try {
+      await redisClient.connect();
+      console.log('successfully connected to redis client');
+      app.listen(2255, () => {
+        console.log("Server started at port 2233");
+      });
+  }catch(e){
+    console.error('something happened :',e);
+  }
+}
 
-import './jobs/cleanUnusedtags';
+startServer();
+import './jobs/cleanUnusedtags'; 
+export default redisClient;

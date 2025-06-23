@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import handleError from '../utils/handleErrors';
 import { generateHash } from '../utils/generateHash';
 import client from '../prismaClient';
+import redisClient from '../server';
+
 
 interface AddContentType {
     title: string,
@@ -172,6 +174,10 @@ export const addContent = async (req: Request<{}, {}, AddContentType>, res: Resp
 
         })
         const enrichedContent = {...newContent,tags : tagsList};
+
+        await redisClient.lPush('embedQueue',JSON.stringify(enrichedContent));
+
+
         res.status(200).json({
             status: "success",
             payload: {
@@ -276,6 +282,11 @@ export const fetchContent = async (req: Request<{}, {}, fetchUserId>, res: Respo
                     }
                 }
             },
+            orderBy:{
+                content :{ 
+                    createdAt : "desc"
+                }
+            }
         });
 
 
