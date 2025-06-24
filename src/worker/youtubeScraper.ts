@@ -2,8 +2,8 @@ import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 import axios from 'axios';
 
-
 puppeteer.use(StealthPlugin());
+
 
 const getTranscriptViaPuppeteer = async (videoUrl: string) => {
     try {
@@ -92,4 +92,69 @@ const getYoutubeTranscript = async (videoUrl: string) => {
     }
 }
 
+const extractVideoId = (videoUrl : string) => {
+  const regex = /(?:youtube\.com\/.*v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/;
+  const match = videoUrl.match(regex);
+  return match ? match[1] : null;
+};
 
+
+const getYoutubeMetaData = async (videoUrl : string ) => { 
+    try{
+        const API_KEY = process.env.YOUTUBE_API_KEY;
+        const videoId = extractVideoId(videoUrl);
+
+        const response = await axios.get(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${videoId}&key=${API_KEY}`)
+        
+        const video = response.data.items[0];
+
+        const metaData = {
+            title: video.snippet.title,
+            description: video.snippet.description,
+            channel: video.snippet.channelTitle,
+            views: video.statistics.viewCount,
+            duration: video.contentDetails.duration,
+            publishedAt: video.snippet.publishedAt
+        };
+
+        return metaData;
+    }catch(e){
+        console.log('Error hitting youtube v3 data api : \n',e);
+        return '';
+    }
+
+}
+ 
+
+const scrapeYoutubeVideoData = async (videoUrl:string) => {
+    try{
+        let youtubeTranscript;
+        let youtubeMetaData ;
+        try{
+            youtubeTranscript = await getYoutubeTranscript(videoUrl);
+        }catch(e){
+            console.error('Error fetching transcript');
+            youtubeTranscript = '';
+        }
+
+        try{
+            youtubeMetaData = await getYoutubeMetaData(videoUrl);
+        }catch(e){
+            console.error('Error fetching MetaData');
+            youtubeMetaData = '';
+        }
+        
+        return {
+            transcript : youtubeTranscript,
+            metadata : youtubeMetaData
+        }
+
+    }catch(e){
+        console.error('Error collecting youtube metadat for given url :',videoUrl);
+        console.error('Specific Error : ',e);
+        return '';
+    }
+
+}
+
+export default scrapeYoutubeVideoData;

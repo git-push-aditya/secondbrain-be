@@ -1,6 +1,6 @@
-import { createClient } from 'redis'; 
-import axios from 'axios';
-import { parseStringPromise } from 'xml2js';
+import { createClient } from 'redis';
+import scrapeYoutubeVideoData from './youtubeScraper';
+import scrapeTweets from './twitterScrapper';
 
 const redisClient = createClient();
 
@@ -22,42 +22,22 @@ interface handleScrapeType {
 //{content} : handleScrapeType 
 
 
-const youtubeTranscriptHandler = async (content : string) => {
-    const url = `https://video.google.com/timedtext?lang=en-US&v=${content}`;
-    console.log(url);
-
-    try {
-        const {data} = await axios.get(url);
-        console.log(data);
-        if(!data) return [];
-        console.log('reached');
-
-        const result = await parseStringPromise(data);
-        const texts = result.transcript.text || [];
-        console.log('reached 2');
-
-        return texts.map((t: any) => t._ || '');
-
-    }catch(e){
-        console.error('caption fetch failed!!', e);
-        return [];
-    }
-}
-
-
-
-
 
 const handleScrape = async ({content} : {content : any}) : Promise<string> => {
     await new Promise(resolve => setTimeout(resolve, 1000));
     if(!content.key){
         console.log('msisig info');
+        return '';
     }
-    console.log(content.element);
-    //check if content.type == youtube
+//use switch case :: neater than if ladder
+//if(content.type === 'YOUTUBE')
+    //const data = await scrapeYoutubeVideoData(content.element);
+//if(content.type === 'TWITTER')
+    console.log(content.element)
+    const data = await scrapeTweets(content.element)
 
-    const transcript = await youtubeTranscriptHandler(content.element);
-    console.log(transcript);
+    console.log(data);
+    
 
     return "job done";
 }   
@@ -74,8 +54,7 @@ const startWorker = async() => {
             let content;
             try{
                 content = await redisClient.brPop('embedQueue',0);
-    //            const content = JSON.parse(data?.element!);
-
+    //            const content = JSON.parse(data?.element!); 
                 const scrapedData  = await handleScrape({content})
                 console.log(scrapedData);
             }catch(e){
