@@ -42,7 +42,7 @@ const startServer = async () => {
   try {
       await redisClient.connect();
       console.log('successfully connected to redis client');
-      app.listen(2255, () => {
+      app.listen(2233, () => {
         console.log("Server started at port 2233");
       });
   }catch(e){

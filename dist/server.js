@@ -46,7 +46,7 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         yield redisClient.connect();
         console.log('successfully connected to redis client');
-        app.listen(2255, () => {
+        app.listen(2233, () => {
             console.log("Server started at port 2233");
         });
     }

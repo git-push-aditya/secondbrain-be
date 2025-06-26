@@ -20,12 +20,14 @@ const setCookies_1 = require("../utils/setCookies");
 const prismaClient_1 = __importDefault(require("../prismaClient"));
 const signUp = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { userName, email, password, rememberMe } = req.body;
+    console.log('here');
     try {
         const ifExist = yield prismaClient_1.default.user.findFirst({
             where: {
                 userName: userName.trim()
             }
         });
+        console.log('here2');
         if (!ifExist) {
             const hashedPassword = yield bcrypt_1.default.hash(password.trim(), 10);
             const newUser = yield prismaClient_1.default.user.create({

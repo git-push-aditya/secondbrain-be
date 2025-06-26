@@ -1,45 +1,61 @@
 import { createClient } from 'redis';
 import scrapeYoutubeVideoData from './youtubeScraper';
 import scrapeTweets from './twitterScrapper';
+import scrapeRedditPost from './redditScrapper';
+import getWebPageData from './webScraper';
 
 const redisClient = createClient();
 
-interface handleScrapeType {
-    content : {
-        tags: {
-            id: number;
-            title: string;
-        }[];
-        type: 'WEB' | 'YOUTUBE' | 'TWITTER' | 'REDDIT' | 'INSTAGRAM';
-        title: string;
-        hyperlink: string;
-        note: string | null;
+interface cardContent { 
+    tags: {
         id: number;
-        createdAt: Date | null;
-    }
+        title: string;
+    }[];
+    type: 'WEB' | 'YOUTUBE' | 'TWITTER' | 'REDDIT' | 'INSTAGRAM';
+    title: string;
+    hyperlink: string;
+    note: string | null;
+    id: number;
+    createdAt: Date | null;
+ 
 }
-
-//{content} : handleScrapeType 
-
+ 
 
 
-const handleScrape = async ({content} : {content : any}) : Promise<string> => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    if(!content.key){
-        console.log('msisig info');
-        return '';
-    }
-//use switch case :: neater than if ladder
-//if(content.type === 'YOUTUBE')
-    //const data = await scrapeYoutubeVideoData(content.element);
-//if(content.type === 'TWITTER')
-    console.log(content.element)
-    const data = await scrapeTweets(content.element)
 
-    console.log(data);
-    
+const handleScrape = async ({card,type} : {card : cardContent,type :string}) : Promise<any> => {
+    await new Promise(resolve => setTimeout(resolve, 1000)); 
 
-    return "job done";
+    let data;
+
+    switch(type){
+        case 'WEB':
+            data = await getWebPageData(card.hyperlink)
+            break;
+        case 'REDDIT':
+            data = await scrapeRedditPost(card.hyperlink);
+            break;
+        case 'TWITTER':
+            data = await scrapeTweets(card.hyperlink)
+            break;
+        case 'YOUTUBE':
+            data = await scrapeYoutubeVideoData(card.hyperlink)
+            break;
+        case 'INSTAGRAM':
+            data = {
+                tags : card.tags,
+                title : card.title,
+                hyerlink : card.hyperlink,
+                note : card.note
+            }
+            break;
+        default : 
+            console.log('Undefined type');
+            break;
+    } 
+
+    console.log(data); 
+    return data;
 }   
 
 
@@ -54,9 +70,13 @@ const startWorker = async() => {
             let content;
             try{
                 content = await redisClient.brPop('embedQueue',0);
-    //            const content = JSON.parse(data?.element!); 
-                const scrapedData  = await handleScrape({content})
-                console.log(scrapedData);
+                const card = JSON.parse(content?.element!); 
+                const scrapedData  = await handleScrape({card,type :card?.type}) ;
+                if(scrapedData.status === 'failure'){
+                    throw new Error;
+                }else{
+                    console.log('\n\n\nScraped successfully !!!')
+                }
             }catch(e){
                 console.error("Some error occured scraping the content or ambedding the content; pushed to error queue",e,content);
                 redisClient.lPush('errorQueue',content?.element || JSON.stringify(content));

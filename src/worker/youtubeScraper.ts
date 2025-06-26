@@ -145,14 +145,23 @@ const scrapeYoutubeVideoData = async (videoUrl:string) => {
         }
         
         return {
-            transcript : youtubeTranscript,
-            metadata : youtubeMetaData
-        }
+            status : 'success',
+            payload :{
+               transcript : youtubeTranscript,
+                metadata : youtubeMetaData 
+            } 
+        };
 
     }catch(e){
         console.error('Error collecting youtube metadat for given url :',videoUrl);
         console.error('Specific Error : ',e);
-        return '';
+        return {
+            status : 'failure',
+            payload : {
+                message : "error scraping data; pushing to error queue",
+                errro: e
+            }
+        };
     }
 
 }

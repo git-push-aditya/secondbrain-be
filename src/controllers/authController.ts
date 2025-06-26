@@ -8,14 +8,14 @@ import client from '../prismaClient';
 
 export const signUp = async (req: Request, res: Response) => {
     const {userName,email ,password, rememberMe} = req.body; 
-
+    console.log('here')
     try {
         const ifExist = await client.user.findFirst({
             where: {
                 userName: userName.trim()
             }
         });
- 
+        console.log('here2')
 
         if (!ifExist) {
             const hashedPassword: string = await bcrypt.hash(password.trim(), 10);
