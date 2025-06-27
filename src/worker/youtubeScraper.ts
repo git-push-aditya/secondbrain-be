@@ -107,10 +107,11 @@ const getYoutubeMetaData = async (videoUrl : string ) => {
         const response = await axios.get(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${videoId}&key=${API_KEY}`)
         
         const video = response.data.items[0];
+        let description = video.snippet.description.replace(/\s+/g,' ').trim(); 
 
         const metaData = {
             title: video.snippet.title,
-            description: video.snippet.description,
+            description: description,
             channel: video.snippet.channelTitle,
             views: video.statistics.viewCount,
             duration: video.contentDetails.duration,
@@ -147,7 +148,7 @@ const scrapeYoutubeVideoData = async (videoUrl:string) => {
         return {
             status : 'success',
             payload :{
-               transcript : youtubeTranscript,
+                transcript : youtubeTranscript,
                 metadata : youtubeMetaData 
             } 
         };

@@ -31,13 +31,13 @@ const getWebPageData = async (url : string) => {
 
         const rawTextContent = article?.textContent;
         let refinedContent = rawTextContent?.replace(/\s+/g,' ').trim() || '';
-        refinedContent = refinedContent.length > 8000 ? refinedContent.slice(0,8000) : refinedContent;
+        refinedContent = refinedContent.length > 7000 ? refinedContent.slice(0,7000) : refinedContent;
         
         return {
             status : 'success',
             payload : {
                 message : 'parsed important data success fully',
-                content : refinedContent || '',
+                content : refinedContent.replace(/\s+/g,' ').trim() || '',
                 title : article?.title || '',
                 author : article?.byline || '',
                 website: article?.siteName || ''

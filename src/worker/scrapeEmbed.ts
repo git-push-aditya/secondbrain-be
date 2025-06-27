@@ -7,7 +7,7 @@ import { CohereClient } from 'cohere-ai';
 import { Pinecone } from '@pinecone-database/pinecone';
 import dotenv from 'dotenv'; 
 dotenv.config();
-
+//need to do this before spinning up puppeteer: npx puppeteer browsers install chrome
 const redisClient = createClient();
 
 const embedClient = new CohereClient({
@@ -40,9 +40,23 @@ const flattenRedditData = (data : any) => {
 }
 
 const flatternTwitterData = (data : any) => {
-    return `Tweet body : ${data?.body || ''} hashtags : ${data?.tags.map((el: any) => el) || ''} `
+    return `Tweet body : ${data?.body || ''} hashtags : ${data?.tags.map((el: any) => el) || ''} `.replace(/\s+/g,' ').trim()
 }
- 
+
+const flatternYoutubeData = (data:any) => { 
+    const transcript = data.transcript.length > 8000 ? data.transcript.slice(0,8000) : data.transcript;
+    return `Transcript : ${transcript} Metadata : { title: ${data?.metadata?.title} description :${data?.metadata?.description} channel : ${data?.metadata?.channel}}`.replace(/\s+/g,' ').trim(); 
+}
+
+const flatterWebData = (data:any) => {
+    return `web content : ${data.content} title: ${data.title.replace(/\s+/g,' ').trim()} author: ${data.author} website: ${data.website} `
+}
+
+//to check the insta 
+const flatternInstagramContent = (data : any) =>{
+    return`hyperlink :${data.hyperlink} note: ${data.note} title : ${data.title} tags : ${data.tags.map((el :any) => el.title)}`.trim();
+}
+
 //just add card details ass well to the scraped data 
 const createAndReturnEmbeddings = async ({data,type} : {data: any,type:string}) => {
     let filteredData : string = '';
@@ -53,11 +67,22 @@ const createAndReturnEmbeddings = async ({data,type} : {data: any,type:string}) 
         case 'TWITTER':
             filteredData = flatternTwitterData(data.payload);
             break;
+        case 'YOUTUBE':
+            filteredData = flatternYoutubeData(data.payload); 
+            console.log(filteredData)
+            break;
+        case 'WEB':
+            filteredData = flatterWebData(data.payload);
+            console.log(filteredData)
+            break;
+        case 'INSTAGRAM':
+            filteredData= flatternInstagramContent(data);
+            break;
         default :
             console.error('Invalid Tpe');
             break;
     }
- 
+    
 
     try{
         const embed = await embedClient.v2.embed({
@@ -69,8 +94,7 @@ const createAndReturnEmbeddings = async ({data,type} : {data: any,type:string}) 
         })
 
  
-        console.log(embed.meta?.billedUnits?.inputTokens+'\n')
-        //console.log(embed.embeddings)
+        console.log(embed.meta?.billedUnits?.inputTokens+'\n') 
         return {
             status : 'success',
             payload : {
@@ -126,14 +150,14 @@ const handleScrapeAndPostEmbeddings = async ({card,type} : {card : any,type :str
         console.log(data)
 
         //note : userId  => card.id   //card id(post gress) used to give id to corresponding embeddign
-        let id :number = 32;
+        let id :number = 675;
         const userId = 22;
-        const embeddings = await createAndReturnEmbeddings({data,type});
+        const embeddings = await createAndReturnEmbeddings({data,type}); 
 
         //pushing embedding to db
         if(embeddings.status === 'success'){
             console.log(embeddings.payload?.embeddings?.float?.[0])
-            const response = await store.upsert([
+            await store.upsert([
                 {
                     id: `${id}`,              // Use content ID from your DB
                     values: embeddings.payload?.embeddings?.float?.[0],             // Your embedding vector (1024 floats)
@@ -142,10 +166,13 @@ const handleScrapeAndPostEmbeddings = async ({card,type} : {card : any,type :str
                     }
                 }
             ]);
-            id += 1; 
-            console.log(response);
-        }else{
+ 
 
+            id += 1; 
+ 
+
+        }else{
+            console.log('issue')
         }
 
 
@@ -179,7 +206,7 @@ const startWorker = async() => {
                 content = await redisClient.brPop('embedQueue',0);
                 //const card = JSON.parse(content?.element!); 
                 const card = content?.element;
-                const type = 'TWITTER';
+                const type = 'YOUTUBE';
                 //const scrapedData  = await handleScrape({card,type :card?.type}) ;
                 const result  = await handleScrapeAndPostEmbeddings({card,type }) ;
                 if(result.status === 'failure'){
