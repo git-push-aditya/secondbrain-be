@@ -28,15 +28,19 @@ const getWebPageData = async (url : string) => {
         const dom = new JSDOM(html, { url });
         const reader = new Readability(dom.window.document);
         const article = reader.parse();
+
+        const rawTextContent = article?.textContent;
+        let refinedContent = rawTextContent?.replace(/\s+/g,' ').trim() || '';
+        refinedContent = refinedContent.length > 8000 ? refinedContent.slice(0,8000) : refinedContent;
         
         return {
             status : 'success',
             payload : {
                 message : 'parsed important data success fully',
-                content : article?.textContent,
-                title : article?.title,
-                author : article?.byline,
-                website: article?.siteName
+                content : refinedContent || '',
+                title : article?.title || '',
+                author : article?.byline || '',
+                website: article?.siteName || ''
             }
         }
     }catch(e){

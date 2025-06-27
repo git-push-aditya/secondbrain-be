@@ -19,23 +19,6 @@ const prismaClient_1 = __importDefault(require("../prismaClient"));
 const server_1 = __importDefault(require("../server"));
 const addContent = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { title, hyperlink, note, type, existingTags, newTags, userId, collectionId } = req.body;
-    console.log('reached');
-    const checkCollUser = yield prismaClient_1.default.collection.findFirst({
-        where: {
-            userId: userId,
-            id: collectionId
-        }
-    });
-    if (checkCollUser === null) {
-        console.log('collection does not belong to this user');
-        res.status(402).json({
-            status: "failure",
-            payload: {
-                message: "unAutherized access"
-            }
-        });
-        return;
-    }
     const ifExist = yield prismaClient_1.default.contentCollection.findFirst({
         where: {
             collection: {
@@ -122,7 +105,7 @@ const addContent = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             }
             return { newContent, tagsList };
         }));
-        const enrichedContent = Object.assign(Object.assign({}, newContent), { tags: tagsList });
+        const enrichedContent = Object.assign(Object.assign({}, newContent), { tags: tagsList, userId }); //userid is needed in the redis queue to segregate vector based on user
         yield server_1.default.lPush('embedQueue', JSON.stringify(enrichedContent));
         res.status(200).json({
             status: "success",

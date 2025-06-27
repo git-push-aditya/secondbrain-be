@@ -9,6 +9,8 @@ const scrapeRedditPost = async (url : string) => {
             let title = data[0]?.data?.children[0]?.data?.title || '';
             let subText = data[0]?.data?.children[0]?.data?.selftext || '';
             let subreddit =data[0]?.data?.children[0]?.data?.subreddit || '';
+            subText = subText.replace(/\s+/g,' ').trim();
+            subText = subText.length > 8000 ? subText.slice(0,8000) : subText;
             post = {
                 subreddit,title,subText
             } 

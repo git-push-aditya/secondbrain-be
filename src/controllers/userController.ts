@@ -47,29 +47,7 @@ interface returningContent {
 export const addContent = async (req: Request<{}, {}, AddContentType>, res: Response) => {
 
     const { title, hyperlink, note, type, existingTags, newTags, userId, collectionId } = req.body;
-
-    console.log('reached');
-
-    const checkCollUser = await client.collection.findFirst({
-        where : {
-            userId : userId,
-            id : collectionId 
-        }
-    })
-
-    if(checkCollUser === null){
-        console.log('collection does not belong to this user');
-        res.status(402).json({
-            status : "failure",
-            payload :{
-                message : "unAutherized access"
-            }
-        })
-        return;
-    }
-
-
-
+ 
     const ifExist = await client.contentCollection.findFirst({
         where: {
             collection : {
@@ -173,7 +151,7 @@ export const addContent = async (req: Request<{}, {}, AddContentType>, res: Resp
             return { newContent, tagsList };
 
         })
-        const enrichedContent = {...newContent,tags : tagsList};
+        const enrichedContent = {...newContent,tags : tagsList,userId};//userid is needed in the redis queue to segregate vector based on user
 
         await redisClient.lPush('embedQueue',JSON.stringify(enrichedContent));
 

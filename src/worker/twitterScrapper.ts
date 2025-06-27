@@ -24,7 +24,8 @@ const scrapeTweets = async (scrapeUrl : string,attempt = 0) => {
 
         const $ = cheerio.load(data);
 
-        const tweet = $('.tweet-content.media-body').first().text().trim(); 
+        const rawTweet = $('.tweet-content.media-body').first().text().trim(); 
+        const refinedTweet = rawTweet.replace(/\s+/g,' ').trim() || '';
 
         const hashTags:string[] = [];
         $('.tweet-content.media-body a').each((_,el)=>{
@@ -36,8 +37,8 @@ const scrapeTweets = async (scrapeUrl : string,attempt = 0) => {
             status : 'success',
             payload :{
                 message : 'scraped!!',
-                body : tweet,
-                tags : hashTags
+                body : refinedTweet,
+                tags : hashTags || []
             }
             
         }
