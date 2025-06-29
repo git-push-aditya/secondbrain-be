@@ -172,7 +172,7 @@ const handleScrapeAndPostEmbeddings = async ({card,type} : {card : any,type :str
  
 
         }else{
-            console.log('issue')
+            console.error('\n\nissue: creating embedding\n\n');
         }
 
 
