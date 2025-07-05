@@ -1,6 +1,16 @@
 import { NextFunction, Request, Response } from 'express';
 import { z } from 'zod';
 
+interface createCommunityType {
+    name : String,
+    descp : String,
+    membersCanPost : Boolean,
+    password : String
+}
+
+
+
+
 const requiredCookie = z.object({
     token: z
         .string()
@@ -260,7 +270,82 @@ export const zodCreateCollection = (req: Request<{}, {}, { collectionName: Strin
             }
         })
     }
+
+    return;
 }
 
 
 //error code 420 for session logout, re-login
+
+/////                 COMMUNITY STARTS HERE
+
+export const zodCreateCommunity = (req: Request<{}, {}, createCommunityType>, res: Response, next : NextFunction) => {
+    const requiredBody  = z.object({
+        name : z.string(),
+        descp : z.string(),
+        membersCanPost : z.boolean(),
+        password : z.string()
+    })
+
+
+    const cookieCheck = requiredCookie.safeParse(req.cookies);
+
+    const bodyCheck = requiredBody.safeParse(req.body);
+
+    if(cookieCheck.success && bodyCheck.success){
+        next();
+    }else if(!cookieCheck.success){
+        console.error("session logout");
+        res.status(420).json({
+            status : "failure",
+            payload : {
+                message : "Session timed out, re-login"
+            }
+        })
+    }else{
+        console.error("Passed parameters for collection creation is invalid");
+        res.status(400).json({
+            status : "failure",
+            payload  : {
+                message : "Passed parameters for collection creation is invalid"
+            }
+        })
+    }
+
+    return;
+}
+
+
+export const zodJoinCommunity = (req: Request<{}, {}, createCommunityType>, res: Response, next : NextFunction) => {
+    const requiredBody  = z.object({
+        ncommunityId : z.string(),
+        password : z.string()
+    })
+
+
+    const cookieCheck = requiredCookie.safeParse(req.cookies);
+
+    const bodyCheck = requiredBody.safeParse(req.body);
+
+    if(cookieCheck.success && bodyCheck.success){
+        next();
+    }else if(!cookieCheck.success){
+        console.error("session logout");
+        res.status(420).json({
+            status : "failure",
+            payload : {
+                message : "Session timed out, re-login"
+            }
+        })
+    }else{
+        console.error("Passed parameters for collection creation is invalid");
+        res.status(400).json({
+            status : "failure",
+            payload  : {
+                message : "Passed parameters for collection creation is invalid"
+            }
+        })
+    }
+
+    return;
+}

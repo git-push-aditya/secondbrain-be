@@ -8,6 +8,7 @@ const jwstAuth_1 = __importDefault(require("../middlewares/jwstAuth"));
 const zodMiddleware_1 = require("../middlewares/zodMiddleware");
 const userController_1 = require("../controllers/userController");
 const checkContentCollection_1 = require("../middlewares/checkContentCollection");
+const communityController_1 = require("../controllers/communityController");
 const router = (0, express_1.Router)();
 router.post('/addcontent', zodMiddleware_1.zodAddContent, jwstAuth_1.default, checkContentCollection_1.checkContentCollectionReference, userController_1.addContent); //*** */
 router.post('/deletecontent', zodMiddleware_1.zodDeleteContent, jwstAuth_1.default, userController_1.deleteContent); //
@@ -25,11 +26,11 @@ router.get('/communitycollectionlist', zodMiddleware_1.meZod, jwstAuth_1.default
 //have to add the gpt enpoint
 //working: 
 /*
-    -fetch query
-    -convert to embedding
-    -have a vector db which has embedddings of the contents of all the users (received using a web crawler: something juicy soup)
     -get cosine similarity and send top 4 / 2 / 1 along with query to gemini api //free
     -receive the output and send it to user
 
 */
+// community related
+router.post('/createcommunity', zodMiddleware_1.zodCreateCommunity, jwstAuth_1.default, communityController_1.createCommunity);
+router.post('/joinCommunity', zodMiddleware_1.zodJoinCommunity, jwstAuth_1.default, communityController_1.joinCommunity);
 exports.default = router;

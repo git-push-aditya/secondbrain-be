@@ -656,11 +656,11 @@ const deleteCollection = (req, res) => __awaiter(void 0, void 0, void 0, functio
         });
         return;
     }
-    try {
+    try { ////made changes her
         const contentToDelete = yield prismaClient_1.default.content.findMany({
             where: {
                 collection: {
-                    every: {
+                    is: {
                         collectionId: collectionId,
                     },
                 },

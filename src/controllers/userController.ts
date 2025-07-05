@@ -771,11 +771,11 @@ export const deleteCollection = async (req :Request, res : Response) => {
         })
         return;
     }
-    try{
+    try{////made changes her
         const contentToDelete = await client.content.findMany({
             where: {
                 collection: {
-                    every: {
+                    is: {
                         collectionId: collectionId, 
                     },
                 },

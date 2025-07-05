@@ -1,8 +1,9 @@
 import {Router} from 'express';
 import verifyJwt from '../middlewares/jwstAuth'
-import {zodAddContent, zodDeleteContent, meZod, zodSharableLink, zodTaggedContent, zodCreateCollection, zodFetchContent, zodSharedContent} from '../middlewares/zodMiddleware';
+import {zodAddContent, zodDeleteContent, meZod, zodSharableLink, zodTaggedContent, zodCreateCollection, zodFetchContent, zodSharedContent, zodCreateCommunity, zodJoinCommunity} from '../middlewares/zodMiddleware';
 import { addContent, deleteCollection, deleteContent, deleteSharedLink, fetchContent, fetchTaggedContent, generateSharableLink, getCommCollList, newCollection, pagedSharedConetnt, sharedContent } from '../controllers/userController';
 import { checkContentCollectionReference } from '../middlewares/checkContentCollection';
+import { createCommunity, joinCommunity } from '../controllers/communityController';
 
 const router = Router();      
 
@@ -35,13 +36,31 @@ router.get('/communitycollectionlist',meZod, verifyJwt, getCommCollList);///****
 
 //working: 
 /*
-    -fetch query
-    -convert to embedding
-    -have a vector db which has embedddings of the contents of all the users (received using a web crawler: something juicy soup)
     -get cosine similarity and send top 4 / 2 / 1 along with query to gemini api //free
     -receive the output and send it to user
 
 */
+
+
+// community related
+
+
+router.post('/createcommunity',zodCreateCommunity,verifyJwt,createCommunity);
+
+router.post('/joinCommunity',zodJoinCommunity, verifyJwt, joinCommunity );
+
+
+
+
+
+
+
+
+
+
+
+
+
 export default router;
 
 

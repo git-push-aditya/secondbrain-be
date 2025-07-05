@@ -122,7 +122,7 @@ model link {
 //b/e makes sure at time of create community , it verifies userid belongs to the user as per the user table
 model community {
   id             Int      @id @default(autoincrement())
-  hash           String /// communityname@hash => hash
+  hash           String 
   name           String
   descp           String
   membersCanPost Boolean  @default(true)
@@ -134,7 +134,7 @@ model community {
   content   communityContent[] 
   votes     voteLog[]
 
-  @@unique([founderId,name,password])
+  @@unique([founderId,hash])
 }
 
 
