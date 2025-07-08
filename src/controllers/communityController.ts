@@ -6,9 +6,10 @@ import bcrypt from 'bcrypt';
 
 
 
-export const createCommunity = async ({req,res} : {req : Request,res : Response}) => {
-    const { userId, name, descp , membersCanPost, password } = req.body;
-    try{
+export const createCommunity = async (req : Request,res : Response) => {
+    
+    try{ 
+        const { userId, name, descp ,emailLead, membersCanPost, password } = req.body;
         //return secondbrain:communityname@hash
         const hash = generateHash();
 
@@ -19,6 +20,7 @@ export const createCommunity = async ({req,res} : {req : Request,res : Response}
                 hash,
                 name,
                 descp,
+                emailLead,
                 membersCanPost,
                 password : hashedPassword,
                 founderId : userId
@@ -49,7 +51,7 @@ export const createCommunity = async ({req,res} : {req : Request,res : Response}
 }
 
 
-export const joinCommunity = async ({req,res} : {req : Request,res : Response}) => {
+export const joinCommunity = async (req : Request,res : Response) => {
     const { communityId, password, userId} = req.body;
     try{
         const hash = communityId.trim().split('@')[1];

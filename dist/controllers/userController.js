@@ -618,12 +618,38 @@ const getCommCollList = (req, res) => __awaiter(void 0, void 0, void 0, function
                 title: true
             }
         });
+        const communitylist = yield prismaClient_1.default.user.findMany({
+            where: {
+                id: userId
+            }, select: {
+                founded: {
+                    select: {
+                        name: true,
+                        id: true
+                    }
+                }, memberOf: {
+                    select: {
+                        community: {
+                            select: {
+                                name: true,
+                                id: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        const list = communitylist[0];
+        const founded = list.founded || [];
+        const memberOf = (list.memberOf || []).map(m => m.community);
+        const allCommunities = [...founded, ...memberOf];
         res.status(200).json({
             status: "success",
             payload: {
                 message: "got collection, tab and communitylist",
                 tagsList,
-                collectionList
+                collectionList,
+                allCommunities
             }
         });
     }

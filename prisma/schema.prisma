@@ -122,6 +122,7 @@ model link {
 //b/e makes sure at time of create community , it verifies userid belongs to the user as per the user table
 model community {
   id             Int      @id @default(autoincrement())
+  emailLead      String
   hash           String 
   name           String
   descp           String

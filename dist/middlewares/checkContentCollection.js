@@ -16,12 +16,6 @@ exports.checkContentCollectionReference = void 0;
 const prismaClient_1 = __importDefault(require("../prismaClient"));
 const checkContentCollectionReference = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const collectionId = (req === null || req === void 0 ? void 0 : req.body.collectionId) || parseInt(req === null || req === void 0 ? void 0 : req.query.collectionId);
-    const checkCollUser = yield prismaClient_1.default.collection.findFirst({
-        where: {
-            userId: req === null || req === void 0 ? void 0 : req.body.userId,
-            id: collectionId
-        }
-    });
     if (isNaN(collectionId)) {
         res.status(400).json({
             status: 'failure',
@@ -31,6 +25,12 @@ const checkContentCollectionReference = (req, res, next) => __awaiter(void 0, vo
         });
         return;
     }
+    const checkCollUser = yield prismaClient_1.default.collection.findFirst({
+        where: {
+            userId: req === null || req === void 0 ? void 0 : req.body.userId,
+            id: collectionId
+        }
+    });
     if (checkCollUser === null) {
         console.log('collection does not belong to this user');
         res.status(403).json({

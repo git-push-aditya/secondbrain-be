@@ -281,6 +281,7 @@ export const zodCreateCollection = (req: Request<{}, {}, { collectionName: Strin
 
 export const zodCreateCommunity = (req: Request<{}, {}, createCommunityType>, res: Response, next : NextFunction) => {
     const requiredBody  = z.object({
+        emailLead : z.string(),
         name : z.string(),
         descp : z.string(),
         membersCanPost : z.boolean(),
@@ -318,7 +319,7 @@ export const zodCreateCommunity = (req: Request<{}, {}, createCommunityType>, re
 
 export const zodJoinCommunity = (req: Request<{}, {}, createCommunityType>, res: Response, next : NextFunction) => {
     const requiredBody  = z.object({
-        ncommunityId : z.string(),
+        communityId : z.string(),
         password : z.string()
     })
 

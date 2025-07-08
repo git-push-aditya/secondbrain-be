@@ -229,6 +229,7 @@ exports.zodCreateCollection = zodCreateCollection;
 /////                 COMMUNITY STARTS HERE
 const zodCreateCommunity = (req, res, next) => {
     const requiredBody = zod_1.z.object({
+        emailLead: zod_1.z.string(),
         name: zod_1.z.string(),
         descp: zod_1.z.string(),
         membersCanPost: zod_1.z.boolean(),
@@ -262,7 +263,7 @@ const zodCreateCommunity = (req, res, next) => {
 exports.zodCreateCommunity = zodCreateCommunity;
 const zodJoinCommunity = (req, res, next) => {
     const requiredBody = zod_1.z.object({
-        ncommunityId: zod_1.z.string(),
+        communityId: zod_1.z.string(),
         password: zod_1.z.string()
     });
     const cookieCheck = requiredCookie.safeParse(req.cookies);

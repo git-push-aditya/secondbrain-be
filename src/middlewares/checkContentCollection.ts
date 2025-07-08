@@ -5,13 +5,6 @@ export const checkContentCollectionReference = async (req: Request, res : Respon
  
     const collectionId = req?.body.collectionId || parseInt(req?.query.collectionId as string);
 
-    const checkCollUser = await client.collection.findFirst({
-        where : {
-            userId : req?.body.userId,
-            id : collectionId 
-        }
-    })
-
     if (isNaN(collectionId)) {
         res.status(400).json({
             status: 'failure',
@@ -21,6 +14,15 @@ export const checkContentCollectionReference = async (req: Request, res : Respon
         });
         return;
     }
+
+    const checkCollUser = await client.collection.findFirst({
+        where : {
+            userId : req?.body.userId,
+            id : collectionId 
+        }
+    })
+
+
 
     if(checkCollUser === null){
         console.log('collection does not belong to this user');
