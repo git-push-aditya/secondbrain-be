@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.zodJoinCommunity = exports.zodCreateCommunity = exports.zodCreateCollection = exports.zodTaggedContent = exports.zodSharableLink = exports.zodDeleteContent = exports.zodAddContent = exports.zodSharedContent = exports.zodFetchContent = exports.meZod = exports.signInUpZodMiddleware = void 0;
+exports.zodBasicCommunity = exports.zodCreateCommunity = exports.zodCreateCollection = exports.zodTaggedContent = exports.zodSharableLink = exports.zodDeleteContent = exports.zodAddContent = exports.zodSharedContent = exports.zodFetchContent = exports.meZod = exports.signInUpZodMiddleware = void 0;
 const zod_1 = require("zod");
 const requiredCookie = zod_1.z.object({
     token: zod_1.z
@@ -261,10 +261,9 @@ const zodCreateCommunity = (req, res, next) => {
     return;
 };
 exports.zodCreateCommunity = zodCreateCommunity;
-const zodJoinCommunity = (req, res, next) => {
+const zodBasicCommunity = (req, res, next) => {
     const requiredBody = zod_1.z.object({
-        communityId: zod_1.z.string(),
-        password: zod_1.z.string()
+        communityId: zod_1.z.string()
     });
     const cookieCheck = requiredCookie.safeParse(req.cookies);
     const bodyCheck = requiredBody.safeParse(req.body);
@@ -291,4 +290,4 @@ const zodJoinCommunity = (req, res, next) => {
     }
     return;
 };
-exports.zodJoinCommunity = zodJoinCommunity;
+exports.zodBasicCommunity = zodBasicCommunity;

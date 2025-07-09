@@ -754,8 +754,16 @@ export const getCommCollList = async (req :Request, res : Response) => {
         }) 
 
         const list = communitylist[0]; 
-        const founded = list.founded || [];
-        const memberOf = (list.memberOf || []).map(m => m.community);
+        const founded =  (list.founded || []).map(community => ({
+            id: community.id, 
+            name: community.name,
+            isFounder : true 
+        }));
+        const memberOf = (list.memberOf || []).map(community => ({
+            id : community.community.id,
+            name : community.community.name,
+            isFounder : false
+        }));
 
         const allCommunities = [...founded, ...memberOf];
 

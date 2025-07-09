@@ -317,10 +317,9 @@ export const zodCreateCommunity = (req: Request<{}, {}, createCommunityType>, re
 }
 
 
-export const zodJoinCommunity = (req: Request<{}, {}, createCommunityType>, res: Response, next : NextFunction) => {
+export const zodBasicCommunity = (req: Request<{}, {}, createCommunityType>, res: Response, next : NextFunction) => {
     const requiredBody  = z.object({
-        communityId : z.string(),
-        password : z.string()
+        communityId : z.string() 
     })
 
 

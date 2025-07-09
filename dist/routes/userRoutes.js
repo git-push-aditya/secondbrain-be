@@ -32,5 +32,6 @@ router.get('/communitycollectionlist', zodMiddleware_1.meZod, jwstAuth_1.default
 */
 // community related
 router.post('/createcommunity', zodMiddleware_1.zodCreateCommunity, jwstAuth_1.default, communityController_1.createCommunity);
-router.post('/joinCommunity', zodMiddleware_1.zodJoinCommunity, jwstAuth_1.default, communityController_1.joinCommunity);
+router.post('/joinCommunity', zodMiddleware_1.zodBasicCommunity, jwstAuth_1.default, communityController_1.joinCommunity);
+router.post('/sharelogin', zodMiddleware_1.zodBasicCommunity, jwstAuth_1.default, checkContentCollection_1.checkUserCommunityRelation, communityController_1.shareLogin);
 exports.default = router;

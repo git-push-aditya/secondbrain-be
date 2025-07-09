@@ -640,8 +640,16 @@ const getCommCollList = (req, res) => __awaiter(void 0, void 0, void 0, function
             }
         });
         const list = communitylist[0];
-        const founded = list.founded || [];
-        const memberOf = (list.memberOf || []).map(m => m.community);
+        const founded = (list.founded || []).map(community => ({
+            id: community.id,
+            name: community.name,
+            isFounder: true
+        }));
+        const memberOf = (list.memberOf || []).map(community => ({
+            id: community.community.id,
+            name: community.community.name,
+            isFounder: false
+        }));
         const allCommunities = [...founded, ...memberOf];
         res.status(200).json({
             status: "success",
