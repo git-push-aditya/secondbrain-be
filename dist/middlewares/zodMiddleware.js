@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.zodBasicCommunity = exports.zodCreateCommunity = exports.zodCreateCollection = exports.zodTaggedContent = exports.zodSharableLink = exports.zodDeleteContent = exports.zodAddContent = exports.zodSharedContent = exports.zodFetchContent = exports.meZod = exports.signInUpZodMiddleware = void 0;
+exports.zodjoinCommunity = exports.zodBasicCommunity = exports.zodCreateCommunity = exports.zodCreateCollection = exports.zodTaggedContent = exports.zodSharableLink = exports.zodDeleteContent = exports.zodAddContent = exports.zodSharedContent = exports.zodFetchContent = exports.meZod = exports.signInUpZodMiddleware = void 0;
 const zod_1 = require("zod");
 const requiredCookie = zod_1.z.object({
     token: zod_1.z
@@ -263,15 +263,19 @@ const zodCreateCommunity = (req, res, next) => {
 exports.zodCreateCommunity = zodCreateCommunity;
 const zodBasicCommunity = (req, res, next) => {
     const requiredBody = zod_1.z.object({
-        communityId: zod_1.z.string()
+        communityId: zod_1.z.coerce.number()
     });
     const cookieCheck = requiredCookie.safeParse(req.cookies);
     const bodyCheck = requiredBody.safeParse(req.body);
     if (cookieCheck.success && bodyCheck.success) {
+        console.log(0);
         next();
+        console.log(1);
+        return;
     }
     else if (!cookieCheck.success) {
         console.error("session logout");
+        console.log(2);
         res.status(420).json({
             status: "failure",
             payload: {
@@ -280,7 +284,8 @@ const zodBasicCommunity = (req, res, next) => {
         });
     }
     else {
-        console.error("Passed parameters for collection creation is invalid");
+        console.log(3);
+        console.error("Passed parameters are invalid");
         res.status(400).json({
             status: "failure",
             payload: {
@@ -288,6 +293,43 @@ const zodBasicCommunity = (req, res, next) => {
             }
         });
     }
+    console.log(4);
     return;
 };
 exports.zodBasicCommunity = zodBasicCommunity;
+const zodjoinCommunity = (req, res, next) => {
+    const requiredBody = zod_1.z.object({
+        communityId: zod_1.z.string()
+    });
+    const cookieCheck = requiredCookie.safeParse(req.cookies);
+    const bodyCheck = requiredBody.safeParse(req.body);
+    if (cookieCheck.success && bodyCheck.success) {
+        console.log(0);
+        next();
+        console.log(1);
+        return;
+    }
+    else if (!cookieCheck.success) {
+        console.error("session logout");
+        console.log(2);
+        res.status(420).json({
+            status: "failure",
+            payload: {
+                message: "Session timed out, re-login"
+            }
+        });
+    }
+    else {
+        console.log(3);
+        console.error("Passed parameters are invalid");
+        res.status(400).json({
+            status: "failure",
+            payload: {
+                message: "Passed parameters for collection creation is invalid"
+            }
+        });
+    }
+    console.log(4);
+    return;
+};
+exports.zodjoinCommunity = zodjoinCommunity;

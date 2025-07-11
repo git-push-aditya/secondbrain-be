@@ -319,6 +319,44 @@ export const zodCreateCommunity = (req: Request<{}, {}, createCommunityType>, re
 
 export const zodBasicCommunity = (req: Request<{}, {}, createCommunityType>, res: Response, next : NextFunction) => {
     const requiredBody  = z.object({
+        communityId : z.coerce.number() 
+    })
+
+
+    const cookieCheck = requiredCookie.safeParse(req.cookies);
+
+    const bodyCheck = requiredBody.safeParse(req.body);
+
+    if(cookieCheck.success && bodyCheck.success){
+        console.log(0)
+        next();
+        console.log(1);
+        return;
+    }else if(!cookieCheck.success){
+        console.error("session logout");
+        console.log(2)
+        res.status(420).json({
+            status : "failure",
+            payload : {
+                message : "Session timed out, re-login"
+            }
+        })
+    }else{
+        console.log(3)
+        console.error("Passed parameters are invalid");
+        res.status(400).json({
+            status : "failure",
+            payload  : {
+                message : "Passed parameters for collection creation is invalid"
+            }
+        })
+    }
+    console.log(4)
+    return;
+}
+
+export const zodjoinCommunity = (req: Request<{}, {}, createCommunityType>, res: Response, next : NextFunction) => {
+    const requiredBody  = z.object({
         communityId : z.string() 
     })
 
@@ -328,9 +366,13 @@ export const zodBasicCommunity = (req: Request<{}, {}, createCommunityType>, res
     const bodyCheck = requiredBody.safeParse(req.body);
 
     if(cookieCheck.success && bodyCheck.success){
+        console.log(0)
         next();
+        console.log(1);
+        return;
     }else if(!cookieCheck.success){
         console.error("session logout");
+        console.log(2)
         res.status(420).json({
             status : "failure",
             payload : {
@@ -338,7 +380,8 @@ export const zodBasicCommunity = (req: Request<{}, {}, createCommunityType>, res
             }
         })
     }else{
-        console.error("Passed parameters for collection creation is invalid");
+        console.log(3)
+        console.error("Passed parameters are invalid");
         res.status(400).json({
             status : "failure",
             payload  : {
@@ -346,6 +389,6 @@ export const zodBasicCommunity = (req: Request<{}, {}, createCommunityType>, res
             }
         })
     }
-
+    console.log(4)
     return;
 }

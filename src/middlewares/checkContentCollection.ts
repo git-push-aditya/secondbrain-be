@@ -66,6 +66,7 @@ export const checkUserCommunityRelation = async (req: Request, res: Response, ne
     if (isFounder || isMember) {
       console.log("middle ware passed")
       next();
+      return;
     }
 
     res.status(403).json({

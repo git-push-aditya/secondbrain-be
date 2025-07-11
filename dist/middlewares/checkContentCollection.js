@@ -69,6 +69,7 @@ const checkUserCommunityRelation = (req, res, next) => __awaiter(void 0, void 0,
         if (isFounder || isMember) {
             console.log("middle ware passed");
             next();
+            return;
         }
         res.status(403).json({
             status: "failure",

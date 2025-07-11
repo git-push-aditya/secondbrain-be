@@ -1,9 +1,9 @@
 import {Router} from 'express';
 import verifyJwt from '../middlewares/jwstAuth'
-import {zodAddContent, zodDeleteContent, meZod, zodSharableLink, zodTaggedContent, zodCreateCollection, zodFetchContent, zodSharedContent, zodCreateCommunity, zodBasicCommunity} from '../middlewares/zodMiddleware';
+import {zodAddContent, zodDeleteContent, meZod, zodSharableLink, zodTaggedContent, zodCreateCollection, zodFetchContent, zodSharedContent, zodCreateCommunity, zodBasicCommunity, zodjoinCommunity} from '../middlewares/zodMiddleware';
 import { addContent, deleteCollection, deleteContent, deleteSharedLink, fetchContent, fetchTaggedContent, generateSharableLink, getCommCollList, newCollection, pagedSharedConetnt, sharedContent } from '../controllers/userController';
 import { checkContentCollectionReference, checkUserCommunityRelation } from '../middlewares/checkContentCollection';
-import { createCommunity, joinCommunity, shareLogin } from '../controllers/communityController';
+import { createCommunity, fetchCommunityContent, joinCommunity, shareLogin } from '../controllers/communityController';
 
 const router = Router();      
 
@@ -47,12 +47,11 @@ router.get('/communitycollectionlist',meZod, verifyJwt, getCommCollList);///****
 
 router.post('/createcommunity',zodCreateCommunity,verifyJwt,createCommunity);
 
-router.post('/joinCommunity',zodBasicCommunity, verifyJwt, joinCommunity );
+router.post('/joinCommunity',zodjoinCommunity, verifyJwt, joinCommunity );
 
 router.post('/sharelogin', zodBasicCommunity, verifyJwt, checkUserCommunityRelation, shareLogin);
 
-
-
+router.get('/getCommunityContent', verifyJwt, checkUserCommunityRelation,fetchCommunityContent)
 
 
 

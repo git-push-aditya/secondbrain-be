@@ -134,9 +134,17 @@ export const shareLogin = async (req: Request, res : Response) => {
             }
         })
 
-        const message = `Hey there! I'd love for you to join our community on SecondBrain. 
-        Just enter this community ID: secondbrain:${communityCred?.name}@${communityCred?.hash}
-        And that's it — you're now part of our growing space!!`;
+        if (communityCred === null) {
+            res.status(404).json({
+                status: "failure",
+                payload: {
+                    message: "Community not found"
+                }
+            });
+            return;
+        }
+
+        const message = `Hey there! I'd love for you to join our community on SecondBrain. Just enter this community ID: secondbrain:${communityCred?.name}@${communityCred?.hash} .And that's it — you're now part of our growing space!!`;
 
         res.status(200).json({
             status : "success",
@@ -144,7 +152,7 @@ export const shareLogin = async (req: Request, res : Response) => {
                 message 
             }
         })
-
+        return;
     }catch(e){
         console.error("Error happened\n\n");
         console.error(e);
@@ -154,5 +162,19 @@ export const shareLogin = async (req: Request, res : Response) => {
                 message : "Internal server error"
             }
         })
+        return;
+    }
+}
+
+
+
+export const fetchCommunityContent = (req: Request, res : Response) => {
+    try{
+        res.status(200).json({
+            status : "successs",
+            payload : {message : "You got it"}
+        })
+    }catch(e){
+
     }
 }
