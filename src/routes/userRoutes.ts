@@ -51,7 +51,7 @@ router.post('/joinCommunity',zodjoinCommunity, verifyJwt,verifyExistingCommunity
 
 router.post('/sharelogin', zodBasicCommunity, verifyJwt, checkUserCommunityRelation, shareLogin);//*
 
-router.get('/getCommunityContent', zodFetchContent, verifyJwt, checkUserCommunityRelation,fetchCommunityContent);
+router.get('/getcommunitycontent', zodFetchContent, verifyJwt, checkUserCommunityRelation,fetchCommunityContent);
 
 router.post('/vote',zodVote, verifyJwt,checkUserCommunityRelation,checkContentCommunityRelation ,upVoteDownVote);
 

@@ -181,6 +181,7 @@ export const shareLogin = async (req: Request, res: Response) => {
 
 export const fetchCommunityContent = async (req: Request, res: Response) => {
     try {
+        const { userId } = req.body;
         const communityId = parseInt(req.query.communityId as string);
         const limit = parseInt(req.query.limit as string) < 20 ? parseInt(req.query.limit as string) : 20;
         const page = parseInt(req.query.page as string) || 1;
@@ -209,10 +210,12 @@ export const fetchCommunityContent = async (req: Request, res: Response) => {
             }
         })
 
+        const enrichedContent = content.map((content) => {return {...content, isOwner : content.content.user.id === userId}})
+
         res.status(200).json({
             status: "success",
             payload: {
-                content,
+                content : enrichedContent,
                 message: content.length === 0 ? "No content found" : "Contents found",
                 more: page * limit < count
             }
