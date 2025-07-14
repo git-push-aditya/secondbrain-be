@@ -16,38 +16,38 @@ enum Type {
 }
 
 enum votevalue {
-  UP 
-  DOWN 
+  upVote
+  downVote
   NONE
 }
 
 model user {
-  id         Int          @id @default(autoincrement())
-  userName   String       @unique
+  id         Int                @id @default(autoincrement())
+  userName   String             @unique
   password   String
-  email      String?      @unique
-  createdAt  DateTime?    @default(now())
+  email      String?            @unique
+  createdAt  DateTime?          @default(now())
   link       link[]
   content    content[]
   collection collection[]
-  founded    community[]   @relation("CommunityFounder")
-  memberOf communityMembers[]  
-  votes  voteLog[]
+  founded    community[]        @relation("CommunityFounder")
+  memberOf   communityMembers[]
+  votes      voteLog[]
 }
 
 model content {
-  id         Int                 @id @default(autoincrement())
+  id         Int                @id @default(autoincrement())
   title      String
   hyperlink  String
   note       String?
-  createdAt  DateTime?           @default(now())
-  type       Type                @default(WEB)
-  user       user                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime?          @default(now())
+  type       Type               @default(WEB)
+  user       user               @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId     Int
   tags       ContentTags[]
   collection contentCollection?
   community  communityContent?
-  votes voteLog[]
+  votes      voteLog[]
 
   @@index([userId])
 }
@@ -65,26 +65,24 @@ model collection {
   @@unique([name, userId])
 }
 
-
-/*
-Note: befoer:
-  model content :   collection contentCollection[]
-  &&
-  model contentCollection {
-  collectionId Int
-  contentId    Int       
-  collection   collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  content      content    @relation(fields: [contentId], references: [id],onDelete :Cascade)
-
-  @@id([contentId, collectionId])
-}
-*/
+/**
+ * Note: befoer:
+ * model content :   collection contentCollection[]
+ * &&
+ * model contentCollection {
+ * collectionId Int
+ * contentId    Int
+ * collection   collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+ * content      content    @relation(fields: [contentId], references: [id],onDelete :Cascade)
+ * @@id([contentId, collectionId])
+ * }
+ */
 
 model contentCollection {
   collectionId Int
-  contentId    Int  @unique      
+  contentId    Int        @unique
   collection   collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  content      content    @relation(fields: [contentId], references: [id])
+  content      content    @relation(fields: [contentId], references: [id], onDelete: Cascade)
 
   @@id([contentId, collectionId])
 }
@@ -118,63 +116,58 @@ model link {
   @@index([userId, collectionId, hash])
 }
 
-
 //b/e makes sure at time of create community , it verifies userid belongs to the user as per the user table
 model community {
-  id             Int      @id @default(autoincrement())
+  id             Int                @id @default(autoincrement())
   emailLead      String
-  hash           String 
+  hash           String
   name           String
-  descp           String
-  membersCanPost Boolean  @default(true)
-  createdAt      DateTime @default(now())
+  descp          String
+  membersCanPost Boolean            @default(true)
+  createdAt      DateTime           @default(now())
   password       String
-  founderId      Int 
-  founder        user     @relation("CommunityFounder",fields: [founderId], references: [id], onDelete: Cascade)
+  founderId      Int
+  founder        user               @relation("CommunityFounder", fields: [founderId], references: [id], onDelete: Cascade)
   members        communityMembers[]
-  content   communityContent[] 
-  votes     voteLog[]
+  content        communityContent[]
+  votes          voteLog[]
 
-  @@unique([founderId,hash])
+  @@unique([founderId, hash])
 }
 
-
-model communityMembers{
-  communityId Int 
-  memberId    Int
-  joinedAt    DateTime  @default(now())
-
-  community community  @relation(fields: [communityId],references: [id],onDelete: Cascade)
-  member    user       @relation(fields: [memberId], references: [id], onDelete: Cascade)
-
-  @@unique([communityId,memberId])
-}
-
-
-
-model communityContent{
-  contentId Int  @unique
+model communityMembers {
   communityId Int
-  upVotes Int @default(0)
-  downVotes Int  @default(0)
-  createdAt DateTime @default(now())
+  memberId    Int
+  joinedAt    DateTime @default(now())
 
-  content content @relation(fields: [contentId], references: [id],onDelete: Cascade)
-  community community @relation(fields: [communityId],references: [id], onDelete: Cascade)
+  community community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  member    user      @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
-  @@unique([communityId,contentId])
+  @@unique([communityId, memberId])
 }
 
+model communityContent {
+  contentId   Int      @unique
+  communityId Int
+  upVotes     Int      @default(0)
+  downVotes   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  content   content   @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  community community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, contentId])
+}
 
 model voteLog {
-  contentId Int 
+  contentId   Int
   communityId Int
-  userId Int
-  vote   votevalue  @default(NONE) 
+  userId      Int
+  vote        votevalue @default(NONE)
 
-  user user @relation(fields: [userId],references: [id],onDelete: Cascade)
-  content content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
-  community community @relation(fields: [communityId], references: [id],onDelete: Cascade)
+  user      user      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   content   @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  community community @relation(fields: [communityId], references: [id], onDelete: Cascade)
 
-  @@unique([userId,communityId,contentId])
+  @@unique([userId, communityId, contentId])
 }

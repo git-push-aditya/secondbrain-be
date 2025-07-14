@@ -14,7 +14,7 @@ interface AddContentType {
     newTags: string[],
     userId: number,
     collectionId: number
-} 
+}
 
 
 interface fetchUserId {
@@ -22,7 +22,7 @@ interface fetchUserId {
     collectionId: number,
     page: number,
     limit: number,
-    hash : string
+    hash: string
 }
 
 interface taggedContent {
@@ -46,40 +46,41 @@ interface returningContent {
 
 export const addContent = async (req: Request<{}, {}, AddContentType>, res: Response) => {
 
-    const { title, hyperlink, note, type, existingTags, newTags, userId, collectionId } = req.body;
- 
-    const ifExist = await client.contentCollection.findFirst({
-        where: {
-            collection : {
-                is :{
-                    id : collectionId,
-                    userId : userId                  
-                } 
-            },
-            content :{
-                is : {
-                    hyperlink
-                } 
-            }
-        },
-        select:{
-            contentId : true
-        }
-    })
+    try {
+        const { title, hyperlink, note, type, existingTags, newTags, userId, collectionId } = req.body;
 
-    if(ifExist && ifExist.contentId){
-        console.log('user is trying to enter same link in the same collection multiple times');
-        res.status(400).json({
-            status : "failure",
-            payload :{
-                message : "Duplicate entry by user"
+        const ifExist = await client.contentCollection.findFirst({
+            where: {
+                collection: {
+                    is: {
+                        id: collectionId,
+                        userId: userId
+                    }
+                },
+                content: {
+                    is: {
+                        hyperlink
+                    }
+                }
+            },
+            select: {
+                contentId: true
             }
         })
-        return;
-    }
+
+        if (ifExist && ifExist.contentId) {
+            console.log('user is trying to enter same link in the same collection multiple times');
+            res.status(400).json({
+                status: "failure",
+                payload: {
+                    message: "Duplicate entry by user"
+                }
+            })
+            return;
+        }
 
 
-    try {
+
         //new tags added
         let filteredNewTags: string[] = newTags.filter((tag) => !existingTags.includes(tag));
 
@@ -126,7 +127,7 @@ export const addContent = async (req: Request<{}, {}, AddContentType>, res: Resp
             //new content created
             const newContent = await tx.content.create({
                 data: { title, hyperlink, note, type, userId },
-                select: { id: true, title: true, hyperlink :true, note : true, createdAt : true, type :true },
+                select: { id: true, title: true, hyperlink: true, note: true, createdAt: true, type: true },
             });
 
             //entry made in contetn collection table to map contetn to particular collection
@@ -151,9 +152,11 @@ export const addContent = async (req: Request<{}, {}, AddContentType>, res: Resp
             return { newContent, tagsList };
 
         })
-        const enrichedContent = {...newContent,tags : tagsList,userId};//userid is needed in the redis queue to segregate vector based on user
 
-        await redisClient.lPush('embedQueue',JSON.stringify(enrichedContent));
+        const enrichedContent = { ...newContent, tags: tagsList, userId };
+        //userid is needed in the redis queue to segregate vector based on user
+
+        //await redisClient.lPush('embedQueue', JSON.stringify(enrichedContent));
 
 
         res.status(200).json({
@@ -162,9 +165,7 @@ export const addContent = async (req: Request<{}, {}, AddContentType>, res: Resp
                 message: "Content created successfully",
                 content: enrichedContent
             }
-        })
-
-    
+        }) 
 
     } catch (e) {
         handleError(e, res);
@@ -212,47 +213,47 @@ export const fetchContent = async (req: Request<{}, {}, fetchUserId>, res: Respo
     const collectionId = parseInt(req.query.collectionId as string);
     const limit = parseInt(req.query.limit as string);
     const page = parseInt(req.query.page as string) || 1;
-    const skip = (page-1)*limit; 
+    const skip = (page - 1) * limit;
 
-    try { 
+    try {
 
         const count = await client.contentCollection.count({
-            where : {
-                collection : {
-                    is : {
+            where: {
+                collection: {
+                    is: {
                         userId
                     }
                 },
-                collectionId : collectionId
+                collectionId: collectionId
             }
         })
         const content = await client.contentCollection.findMany({
             where: {
-                collection:{
-                    is:{
+                collection: {
+                    is: {
                         userId
                     }
                 },
                 collectionId: collectionId,
             },
             skip,
-            take:limit,
+            take: limit,
             select: {
-                collectionId:true,
+                collectionId: true,
                 content: {
-                    select: { 
-                        id : true,
-                        title : true,
-                        hyperlink : true,
-                        note : true,
-                        createdAt : true,
-                        type : true,
-                        tags : {
-                            select : {
-                                tag : {
-                                    select : {
-                                        id : true,
-                                        title : true
+                    select: {
+                        id: true,
+                        title: true,
+                        hyperlink: true,
+                        note: true,
+                        createdAt: true,
+                        type: true,
+                        tags: {
+                            select: {
+                                tag: {
+                                    select: {
+                                        id: true,
+                                        title: true
                                     }
                                 }
                             }
@@ -260,24 +261,24 @@ export const fetchContent = async (req: Request<{}, {}, fetchUserId>, res: Respo
                     }
                 }
             },
-            orderBy:{
-                content :{ 
-                    createdAt : "desc"
+            orderBy: {
+                content: {
+                    createdAt: "desc"
                 }
             }
         });
 
 
- 
+
         res.status(200).json({
             status: "success",
             payload: {
                 message: content.length === 0 ? "No content found" : "Contents found",
                 content,//data is in content.content
-                more : page * limit < count
+                more: page * limit < count
             }
         })
-    
+
 
 
     } catch (e) {
@@ -292,8 +293,8 @@ export const fetchContent = async (req: Request<{}, {}, fetchUserId>, res: Respo
 
 
 export const generateSharableLink = async (req: Request<{}, {}, fetchUserId>, res: Response) => {
-    const { userId, collectionId } = req.body; 
-    
+    const { userId, collectionId } = req.body;
+
     try {
         const check = await client.link.findFirst({
             where: {
@@ -305,7 +306,7 @@ export const generateSharableLink = async (req: Request<{}, {}, fetchUserId>, re
             }
         });
 
-        if (check === null){
+        if (check === null) {
 
             const hash = generateHash();
 
@@ -318,10 +319,10 @@ export const generateSharableLink = async (req: Request<{}, {}, fetchUserId>, re
             });
 
             await client.collection.update({
-                where : {
-                    id : collectionId
-                },data: {
-                    shared : true
+                where: {
+                    id: collectionId
+                }, data: {
+                    shared: true
                 }
             })
 
@@ -357,16 +358,16 @@ export const generateSharableLink = async (req: Request<{}, {}, fetchUserId>, re
 
 //initial fetch that gets metadata
 export const sharedContent = async (req: Request, res: Response) => {
-    const requestHash = req.query.id as string;  
+    const requestHash = req.query.id as string;
     try {
         const shareExist = await client.link.findFirst({
             where: {
                 hash: requestHash
-            }, select: { 
-                collection : {
-                    select : {
-                        name : true,
-                        desc : true
+            }, select: {
+                collection: {
+                    select: {
+                        name: true,
+                        desc: true
                     }
                 },
                 user: {
@@ -376,20 +377,20 @@ export const sharedContent = async (req: Request, res: Response) => {
                 }
             }
         })
-         
+
         if (shareExist !== null) {
-        
- 
+
+
             res.status(200).json({
                 status: "success",
                 payload: {
-                    message: "Collection is shared// sending metadat", 
+                    message: "Collection is shared// sending metadat",
                     userName: shareExist.user.userName,
-                    collectionName : shareExist.collection.name,
-                    collectionDesc : shareExist.collection.desc
+                    collectionName: shareExist.collection.name,
+                    collectionDesc: shareExist.collection.desc
                 }
             })
-            
+
 
         } else {
             res.status(404).json({
@@ -410,7 +411,7 @@ export const sharedContent = async (req: Request, res: Response) => {
 
 
 //to actually fetch userdata in shared page
-export const pagedSharedConetnt = async (req: Request, res: Response) => { 
+export const pagedSharedConetnt = async (req: Request, res: Response) => {
     const hash = req.query.hash as string;
     const page = req.query.page as string;
     const limit = req.query.limit as string;
@@ -422,51 +423,51 @@ export const pagedSharedConetnt = async (req: Request, res: Response) => {
         select: { collectionId: true }
     });
 
-    if(collectionId === null){
+    if (collectionId === null) {
         console.log("reached here - not supposed to ");
         console.error("unauthorized access")
         res.status(400).json({
-            status : "failure",
-            payload : {
-                message : "No shared collection exist"
+            status: "failure",
+            payload: {
+                message: "No shared collection exist"
             }
         });
         return;
     }
-    try{  //more field in the return which
+    try {  //more field in the return which
         console.log("reached here 2");
         const count = await client.contentCollection.count({
-            where:{
-                collectionId : collectionId.collectionId
+            where: {
+                collectionId: collectionId.collectionId
             }
-        }) 
+        })
         const paginatedSharedData = await client.contentCollection.findMany({
             where: {
                 collectionId: collectionId.collectionId,
-                collection:{
-                    is : {
-                       shared : true 
+                collection: {
+                    is: {
+                        shared: true
                     }
                 }
             },
             skip,
             take: parseInt(limit),
-            select:{
+            select: {
                 collectionId: true,
-                content : {
-                    select :{
+                content: {
+                    select: {
                         id: true,
-                        title:true,
-                        hyperlink : true,
+                        title: true,
+                        hyperlink: true,
                         createdAt: true,
-                        note : true,
-                        type : true,
-                        tags:{
-                            select:{
-                                tag : {
-                                    select:{
-                                        id :true,
-                                        title : true
+                        note: true,
+                        type: true,
+                        tags: {
+                            select: {
+                                tag: {
+                                    select: {
+                                        id: true,
+                                        title: true
                                     }
                                 }
                             }
@@ -474,18 +475,18 @@ export const pagedSharedConetnt = async (req: Request, res: Response) => {
                     }
                 }
             }
-        }) 
+        })
         res.status(200).json({
-            status : "success",
-            payload : {
-                message : "fetched content successfully",
-                content : paginatedSharedData,
-                more : parseInt(page) * parseInt(limit) < count
+            status: "success",
+            payload: {
+                message: "fetched content successfully",
+                content: paginatedSharedData,
+                more: parseInt(page) * parseInt(limit) < count
             }
         })
-    }catch(e){
-        console.error("some error occured",e);
-        handleError(e,res);
+    } catch (e) {
+        console.error("some error occured", e);
+        handleError(e, res);
     }
     return;
 }
@@ -567,7 +568,7 @@ export const fetchTaggedContent = async (req: Request<{}, {}, taggedContent>, re
                             userId: contentEl.content.userId,
                             tags: [contentEl.tag.title]
                         })
-                    } 
+                    }
                 });
 
                 refinedContent = Array.from(contentMap.values());
@@ -635,7 +636,7 @@ export const fetchTaggedContent = async (req: Request<{}, {}, taggedContent>, re
 
 
 export const deleteSharedLink = async (req: Request<{}, {}, fetchUserId>, res: Response) => {
-    const { userId , collectionId} = req.body; 
+    const { userId, collectionId } = req.body;
     try {
         await client.link.delete({
             where: {
@@ -645,12 +646,12 @@ export const deleteSharedLink = async (req: Request<{}, {}, fetchUserId>, res: R
         });
 
         await client.collection.update({
-            where : {
-                id : collectionId
-            },data : {
-                shared : false
+            where: {
+                id: collectionId
+            }, data: {
+                shared: false
             }
-        }) 
+        })
         res.status(200).json({
             status: "success",
             payload: {
@@ -665,37 +666,37 @@ export const deleteSharedLink = async (req: Request<{}, {}, fetchUserId>, res: R
 }
 
 
-export const newCollection = async (req: Request<{}, {}, {userId: number, collectionName  : string, collectionDesc : string}>, res: Response) => {
-    const {userId , collectionName, collectionDesc } = req.body;
+export const newCollection = async (req: Request<{}, {}, { userId: number, collectionName: string, collectionDesc: string }>, res: Response) => {
+    const { userId, collectionName, collectionDesc } = req.body;
 
-    try { 
+    try {
         const newCollection = await client.collection.create({
-            data : {
-                name : collectionName,
-                userId : userId,
-                desc : collectionDesc
-            },select:{
-                id : true,
-                name : true
+            data: {
+                name: collectionName,
+                userId: userId,
+                desc: collectionDesc
+            }, select: {
+                id: true,
+                name: true
             }
         })
 
         res.status(200).json({
-            status : "success",
-            payload : {
-                message : " Collection created successfully ",
-                collectionId : newCollection.id,
-                collectionName : newCollection.name
+            status: "success",
+            payload: {
+                message: " Collection created successfully ",
+                collectionId: newCollection.id,
+                collectionName: newCollection.name
             }
         })
 
 
-    }catch(e){
+    } catch (e) {
         console.error("Error creating new collection for the user ");
         res.status(500).json({
-            status : "failure",
-            payload : { 
-                message : " Internal server error "
+            status: "failure",
+            payload: {
+                message: " Internal server error "
             }
         })
     }
@@ -710,59 +711,59 @@ export const newCollection = async (req: Request<{}, {}, {userId: number, collec
 
 
 
-export const getCommCollList = async (req :Request, res : Response) => {
+export const getCommCollList = async (req: Request, res: Response) => {
 
-    const {userId} = req.body;
+    const { userId } = req.body;
 
-    try{
+    try {
         const collectionList = await client.collection.findMany({
-            where :{
-                userId : userId
-            }, select:{
+            where: {
+                userId: userId
+            }, select: {
                 id: true,
-                name : true,
-                shared : true
+                name: true,
+                shared: true
             }
         })
 
-        const tagsList =  await client.tags.findMany({
-            select : {
-                title : true
+        const tagsList = await client.tags.findMany({
+            select: {
+                title: true
             }
         })
 
         const communitylist = await client.user.findMany({
-            where:{
-                id : userId
-            },select : {
-                founded : {
-                    select :{
-                        name : true,
-                        id : true
+            where: {
+                id: userId
+            }, select: {
+                founded: {
+                    select: {
+                        name: true,
+                        id: true
                     }
-                },memberOf :{ 
-                    select : {
-                        community : {
-                            select : {
-                                name : true,
-                                id : true
+                }, memberOf: {
+                    select: {
+                        community: {
+                            select: {
+                                name: true,
+                                id: true
                             }
                         }
                     }
                 }
             }
-        }) 
+        })
 
-        const list = communitylist[0]; 
-        const founded =  (list.founded || []).map(community => ({
-            id: community.id, 
+        const list = communitylist[0];
+        const founded = (list.founded || []).map(community => ({
+            id: community.id,
             name: community.name,
-            isFounder : true 
+            isFounder: true
         }));
         const memberOf = (list.memberOf || []).map(community => ({
-            id : community.community.id,
-            name : community.community.name,
-            isFounder : false
+            id: community.community.id,
+            name: community.community.name,
+            isFounder: false
         }));
 
         const allCommunities = [...founded, ...memberOf];
@@ -771,18 +772,18 @@ export const getCommCollList = async (req :Request, res : Response) => {
         res.status(200).json({
             status: "success",
             payload: {
-                message:  "got collection, tab and communitylist",
+                message: "got collection, tab and communitylist",
                 tagsList,
                 collectionList,
                 allCommunities
             }
         })
-    }catch(e){
+    } catch (e) {
         console.error('errro getting data');
         res.status(400).json({
-            status : "failure",
+            status: "failure",
             payload: {
-                message : "internal server error"
+                message: "internal server error"
             }
         })
     }
@@ -790,31 +791,31 @@ export const getCommCollList = async (req :Request, res : Response) => {
 }
 
 
-export const deleteCollection = async (req :Request, res : Response) => {
-    const { collectionId} = req.body;
+export const deleteCollection = async (req: Request, res: Response) => {
+    const { collectionId } = req.body;
     const ifDashboard = await client.collection.findFirst({
-        where : {
-            id : collectionId
-        },select : {
-            name : true
+        where: {
+            id: collectionId
+        }, select: {
+            name: true
         }
     })
 
-    if(!ifDashboard === null || ifDashboard?.name === 'dashboard'){
+    if (!ifDashboard === null || ifDashboard?.name === 'dashboard') {
         res.status(400).json({
-            status :'failure',
-            payload : {
-                message : "Cannot delete dashboard"
+            status: 'failure',
+            payload: {
+                message: "Cannot delete dashboard"
             }
         })
         return;
     }
-    try{////made changes her
+    try {////made changes her
         const contentToDelete = await client.content.findMany({
             where: {
                 collection: {
                     is: {
-                        collectionId: collectionId, 
+                        collectionId: collectionId,
                     },
                 },
             },
@@ -828,22 +829,22 @@ export const deleteCollection = async (req :Request, res : Response) => {
 
 
         const deletedDashboard = await client.collection.delete({
-            where : {
-                id : collectionId
-            },select :{ 
-                id : true
+            where: {
+                id: collectionId
+            }, select: {
+                id: true
             }
         })
 
         res.status(200).json({
-            status : "success",
-            payload : {
-                message : "Collection and its contetn deleted successfull",
-                deletedId : deletedDashboard.id
+            status: "success",
+            payload: {
+                message: "Collection and its contetn deleted successfull",
+                deletedId: deletedDashboard.id
             }
         })
-    }catch(e){
+    } catch (e) {
         console.error('Error deleting the collection ', e);
-        handleError(e,res);
+        handleError(e, res);
     }
 }

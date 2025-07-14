@@ -1,9 +1,9 @@
 import {Router} from 'express';
 import verifyJwt from '../middlewares/jwstAuth'
-import {zodAddContent, zodDeleteContent, meZod, zodSharableLink, zodTaggedContent, zodCreateCollection, zodFetchContent, zodSharedContent, zodCreateCommunity, zodBasicCommunity, zodjoinCommunity} from '../middlewares/zodMiddleware';
+import {zodAddContent, zodDeleteContent, meZod, zodSharableLink, zodTaggedContent, zodCreateCollection, zodFetchContent, zodSharedContent, zodCreateCommunity, zodBasicCommunity, zodjoinCommunity, zodVote} from '../middlewares/zodMiddleware';
 import { addContent, deleteCollection, deleteContent, deleteSharedLink, fetchContent, fetchTaggedContent, generateSharableLink, getCommCollList, newCollection, pagedSharedConetnt, sharedContent } from '../controllers/userController';
-import { checkContentCollectionReference, checkUserCommunityRelation } from '../middlewares/checkContentCollection';
-import { createCommunity, fetchCommunityContent, joinCommunity, shareLogin } from '../controllers/communityController';
+import { checkContentCollectionReference, checkContentCommunityRelation, checkUserCommunityRelation, verifyExistingCommunityHash } from '../middlewares/checkContentCollection';
+import { addCommunityContent, createCommunity, fetchCommunityContent, joinCommunity, shareLogin, upVoteDownVote } from '../controllers/communityController';
 
 const router = Router();      
 
@@ -45,18 +45,19 @@ router.get('/communitycollectionlist',meZod, verifyJwt, getCommCollList);///****
 // community related
 
 
-router.post('/createcommunity',zodCreateCommunity,verifyJwt,createCommunity);
+router.post('/createcommunity',zodCreateCommunity,verifyJwt,createCommunity); //*
 
-router.post('/joinCommunity',zodjoinCommunity, verifyJwt, joinCommunity );
+router.post('/joinCommunity',zodjoinCommunity, verifyJwt,verifyExistingCommunityHash ,joinCommunity );//*
 
-router.post('/sharelogin', zodBasicCommunity, verifyJwt, checkUserCommunityRelation, shareLogin);
+router.post('/sharelogin', zodBasicCommunity, verifyJwt, checkUserCommunityRelation, shareLogin);//*
 
-router.get('/getCommunityContent', verifyJwt, checkUserCommunityRelation,fetchCommunityContent)
+router.get('/getCommunityContent', zodFetchContent, verifyJwt, checkUserCommunityRelation,fetchCommunityContent);
 
+router.post('/vote',zodVote, verifyJwt,checkUserCommunityRelation,checkContentCommunityRelation ,upVoteDownVote);
 
+//get users list => on mount of community this is fired in background
 
-
-
+router.post('/addcommunitycontent', zodAddContent, verifyJwt,checkUserCommunityRelation, addCommunityContent);
 
 
 

@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { z } from 'zod';
+import { joinCommunity } from '../controllers/communityController';
 
 interface createCommunityType {
     name : String,
@@ -74,7 +75,8 @@ export const zodFetchContent = (req: Request, res: Response, next: NextFunction)
     const cookieCheck = requiredCookie.safeParse(req.cookies);
 
     const requiredQuery  = z.object({
-        collectionId : z.coerce.number(),
+        collectionId : z.coerce.number().optional(),
+        communityId : z.coerce.number().optional(),
         page : z.coerce.number(),
         limit : z.coerce.number()
     })
@@ -126,7 +128,8 @@ export const zodAddContent = (req: Request, res: Response, next: NextFunction): 
         type: z.enum(['WEB', 'YOUTUBE', 'REDDIT', 'TWITTER', 'INSTAGRAM']),
         existingTags : z.string().array(),
         newTags : z.string().array(),
-        collectionId : z.number()
+        collectionId : z.coerce.number().optional(),
+        communityId : z.coerce.number().optional()
     });
 
 
@@ -255,7 +258,7 @@ export const zodCreateCollection = (req: Request<{}, {}, { collectionName: Strin
         next();
     }else if(!cookieCheck.success){
         console.error("session logout");
-        res.status(420).json({
+        res.status(401).json({
             status : "failure",
             payload : {
                 message : "Session timed out, re-login"
@@ -275,7 +278,7 @@ export const zodCreateCollection = (req: Request<{}, {}, { collectionName: Strin
 }
 
 
-//error code 420 for session logout, re-login
+//error code 401 for session logout, re-login
 
 /////                 COMMUNITY STARTS HERE
 
@@ -297,7 +300,7 @@ export const zodCreateCommunity = (req: Request<{}, {}, createCommunityType>, re
         next();
     }else if(!cookieCheck.success){
         console.error("session logout");
-        res.status(420).json({
+        res.status(401).json({
             status : "failure",
             payload : {
                 message : "Session timed out, re-login"
@@ -308,7 +311,7 @@ export const zodCreateCommunity = (req: Request<{}, {}, createCommunityType>, re
         res.status(400).json({
             status : "failure",
             payload  : {
-                message : "Passed parameters for collection creation is invalid"
+                message : "Passed parameters for community creation is invalid"
             }
         })
     }
@@ -327,15 +330,13 @@ export const zodBasicCommunity = (req: Request<{}, {}, createCommunityType>, res
 
     const bodyCheck = requiredBody.safeParse(req.body);
 
-    if(cookieCheck.success && bodyCheck.success){
-        console.log(0)
+    if(cookieCheck.success && bodyCheck.success){ 
         next();
-        console.log(1);
         return;
     }else if(!cookieCheck.success){
         console.error("session logout");
         console.log(2)
-        res.status(420).json({
+        res.status(401).json({
             status : "failure",
             payload : {
                 message : "Session timed out, re-login"
@@ -347,7 +348,7 @@ export const zodBasicCommunity = (req: Request<{}, {}, createCommunityType>, res
         res.status(400).json({
             status : "failure",
             payload  : {
-                message : "Passed parameters for collection creation is invalid"
+                message : "Passed parameters for community is invalid"
             }
         })
     }
@@ -360,35 +361,65 @@ export const zodjoinCommunity = (req: Request<{}, {}, createCommunityType>, res:
         communityId : z.string() 
     })
 
-
     const cookieCheck = requiredCookie.safeParse(req.cookies);
 
     const bodyCheck = requiredBody.safeParse(req.body);
 
-    if(cookieCheck.success && bodyCheck.success){
-        console.log(0)
-        next();
-        console.log(1);
+    if(cookieCheck.success && bodyCheck.success){ 
+        next(); 
         return;
     }else if(!cookieCheck.success){
-        console.error("session logout");
-        console.log(2)
-        res.status(420).json({
+        console.error("session logout"); 
+        res.status(401).json({
             status : "failure",
             payload : {
                 message : "Session timed out, re-login"
             }
         })
-    }else{
-        console.log(3)
+    }else{ 
         console.error("Passed parameters are invalid");
         res.status(400).json({
             status : "failure",
             payload  : {
-                message : "Passed parameters for collection creation is invalid"
+                message : "Passed parameters to join a community is invalid"
             }
         })
-    }
-    console.log(4)
+    } 
+    return;
+}
+
+
+export const zodVote = ( req: Request, res : Response , next : NextFunction) => {
+    const requiredBody  = z.object({
+        communityId : z.coerce.number(),
+        contentId : z.coerce.number(),
+        vote : z.enum(['upVote','downVote'])
+    })
+
+    const cookieCheck = requiredCookie.safeParse(req.cookies);
+
+    const bodyCheck = requiredBody.safeParse(req.body);
+
+    if(cookieCheck.success && bodyCheck.success){ 
+        next(); 
+        return;
+    }else if(!cookieCheck.success){
+        console.error("session logout"); 
+        res.status(401).json({
+            status : "failure",
+            payload : {
+                message : "Session timed out, re-login"
+            }
+        })
+    }else{ 
+        console.error("Passed parameters are invalid"); 
+        res.status(400).json({
+            status : "failure",
+            payload  : {
+                message : "Passed parameters for voting are invalid"
+
+            }
+        })
+    } 
     return;
 }

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.zodjoinCommunity = exports.zodBasicCommunity = exports.zodCreateCommunity = exports.zodCreateCollection = exports.zodTaggedContent = exports.zodSharableLink = exports.zodDeleteContent = exports.zodAddContent = exports.zodSharedContent = exports.zodFetchContent = exports.meZod = exports.signInUpZodMiddleware = void 0;
+exports.zodVote = exports.zodjoinCommunity = exports.zodBasicCommunity = exports.zodCreateCommunity = exports.zodCreateCollection = exports.zodTaggedContent = exports.zodSharableLink = exports.zodDeleteContent = exports.zodAddContent = exports.zodSharedContent = exports.zodFetchContent = exports.meZod = exports.signInUpZodMiddleware = void 0;
 const zod_1 = require("zod");
 const requiredCookie = zod_1.z.object({
     token: zod_1.z
@@ -49,7 +49,8 @@ exports.meZod = meZod;
 const zodFetchContent = (req, res, next) => {
     const cookieCheck = requiredCookie.safeParse(req.cookies);
     const requiredQuery = zod_1.z.object({
-        collectionId: zod_1.z.coerce.number(),
+        collectionId: zod_1.z.coerce.number().optional(),
+        communityId: zod_1.z.coerce.number().optional(),
         page: zod_1.z.coerce.number(),
         limit: zod_1.z.coerce.number()
     });
@@ -96,7 +97,8 @@ const zodAddContent = (req, res, next) => {
         type: zod_1.z.enum(['WEB', 'YOUTUBE', 'REDDIT', 'TWITTER', 'INSTAGRAM']),
         existingTags: zod_1.z.string().array(),
         newTags: zod_1.z.string().array(),
-        collectionId: zod_1.z.number()
+        collectionId: zod_1.z.coerce.number().optional(),
+        communityId: zod_1.z.coerce.number().optional()
     });
     const bodyCheck = requiredBody.safeParse(req.body);
     const cookieCheck = requiredCookie.safeParse(req.cookies);
@@ -206,7 +208,7 @@ const zodCreateCollection = (req, res, next) => {
     }
     else if (!cookieCheck.success) {
         console.error("session logout");
-        res.status(420).json({
+        res.status(401).json({
             status: "failure",
             payload: {
                 message: "Session timed out, re-login"
@@ -225,7 +227,7 @@ const zodCreateCollection = (req, res, next) => {
     return;
 };
 exports.zodCreateCollection = zodCreateCollection;
-//error code 420 for session logout, re-login
+//error code 401 for session logout, re-login
 /////                 COMMUNITY STARTS HERE
 const zodCreateCommunity = (req, res, next) => {
     const requiredBody = zod_1.z.object({
@@ -242,7 +244,7 @@ const zodCreateCommunity = (req, res, next) => {
     }
     else if (!cookieCheck.success) {
         console.error("session logout");
-        res.status(420).json({
+        res.status(401).json({
             status: "failure",
             payload: {
                 message: "Session timed out, re-login"
@@ -254,7 +256,7 @@ const zodCreateCommunity = (req, res, next) => {
         res.status(400).json({
             status: "failure",
             payload: {
-                message: "Passed parameters for collection creation is invalid"
+                message: "Passed parameters for community creation is invalid"
             }
         });
     }
@@ -268,15 +270,13 @@ const zodBasicCommunity = (req, res, next) => {
     const cookieCheck = requiredCookie.safeParse(req.cookies);
     const bodyCheck = requiredBody.safeParse(req.body);
     if (cookieCheck.success && bodyCheck.success) {
-        console.log(0);
         next();
-        console.log(1);
         return;
     }
     else if (!cookieCheck.success) {
         console.error("session logout");
         console.log(2);
-        res.status(420).json({
+        res.status(401).json({
             status: "failure",
             payload: {
                 message: "Session timed out, re-login"
@@ -289,7 +289,7 @@ const zodBasicCommunity = (req, res, next) => {
         res.status(400).json({
             status: "failure",
             payload: {
-                message: "Passed parameters for collection creation is invalid"
+                message: "Passed parameters for community is invalid"
             }
         });
     }
@@ -304,15 +304,12 @@ const zodjoinCommunity = (req, res, next) => {
     const cookieCheck = requiredCookie.safeParse(req.cookies);
     const bodyCheck = requiredBody.safeParse(req.body);
     if (cookieCheck.success && bodyCheck.success) {
-        console.log(0);
         next();
-        console.log(1);
         return;
     }
     else if (!cookieCheck.success) {
         console.error("session logout");
-        console.log(2);
-        res.status(420).json({
+        res.status(401).json({
             status: "failure",
             payload: {
                 message: "Session timed out, re-login"
@@ -320,16 +317,47 @@ const zodjoinCommunity = (req, res, next) => {
         });
     }
     else {
-        console.log(3);
         console.error("Passed parameters are invalid");
         res.status(400).json({
             status: "failure",
             payload: {
-                message: "Passed parameters for collection creation is invalid"
+                message: "Passed parameters to join a community is invalid"
             }
         });
     }
-    console.log(4);
     return;
 };
 exports.zodjoinCommunity = zodjoinCommunity;
+const zodVote = (req, res, next) => {
+    const requiredBody = zod_1.z.object({
+        communityId: zod_1.z.coerce.number(),
+        contentId: zod_1.z.coerce.number(),
+        vote: zod_1.z.enum(['upVote', 'downVote'])
+    });
+    const cookieCheck = requiredCookie.safeParse(req.cookies);
+    const bodyCheck = requiredBody.safeParse(req.body);
+    if (cookieCheck.success && bodyCheck.success) {
+        next();
+        return;
+    }
+    else if (!cookieCheck.success) {
+        console.error("session logout");
+        res.status(401).json({
+            status: "failure",
+            payload: {
+                message: "Session timed out, re-login"
+            }
+        });
+    }
+    else {
+        console.error("Passed parameters are invalid");
+        res.status(400).json({
+            status: "failure",
+            payload: {
+                message: "Passed parameters for voting are invalid"
+            }
+        });
+    }
+    return;
+};
+exports.zodVote = zodVote;

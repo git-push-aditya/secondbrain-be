@@ -1,136 +1,147 @@
 import { Request, Response } from "express";
 import { generateHash } from "../utils/generateHash";
 import client from "../prismaClient";
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcrypt'; 
+import { $Enums } from "@prisma/client";
+import handleError from "../utils/handleErrors";
+
+interface cardContent {
+    id: number;
+    userId: number;
+    title: string;
+    hyperlink: string;
+    note: string | null;
+    type: $Enums.Type;
+}
 
 
 
 
-export const createCommunity = async (req : Request,res : Response) => {
-    
-    try{ 
-        const { userId, name, descp ,emailLead, membersCanPost, password } = req.body;
-    
+export const createCommunity = async (req: Request, res: Response) => {
+
+    try {
+        const { userId, name, descp, emailLead, membersCanPost, password } = req.body;
+
         const hash = generateHash();
 
         const hashedPassword = await bcrypt.hash(password.trim(), 10)
 
         const createdCommunity = await client.community.create({
-            data : {
+            data: {
                 hash,
                 name,
                 descp,
                 emailLead,
                 membersCanPost,
-                password : hashedPassword,
-                founderId : userId
+                password: hashedPassword,
+                founderId: userId
             }
         })
 
         const community = `secondbrain:${name}@${hash}`;
 
         res.json({
-            status : "success",
-            payload : {
-                message : "community created successfully",
+            status: "success",
+            payload: {
+                message: "community created successfully",
                 community,
-                communityId : createdCommunity.id,
-                password : password.trim()
+                communityId: createdCommunity.id,
+                password: password.trim()
             }
         })
-    }catch(e){
+    } catch (e) {
         console.error("Some error occured\n\n");
         console.error(e);
         res.status(400).json({
             status: "failure",
-            payload :{
-                message : " server error creating a community. Retry later."
+            payload: {
+                message: " server error creating a community. Retry later."
             }
         })
     }
 }
 
 
-export const joinCommunity = async (req : Request,res : Response) => {
-    const { communityId, userId} = req.body;
-    try{
+export const joinCommunity = async (req: Request, res: Response) => {
+    try {
+        const { communityId, userId } = req.body;
         const hash = communityId.trim().split('@')[1];
         const communityCred = await client.community.findFirst({
-            where : {
+            where: {
                 hash
-            },select :{
-                name : true,
-                id : true,
-                descp : true, 
-                membersCanPost  : true,
-                founder : {
-                    select : {
-                        id  : true,
-                        userName : true
+            }, select: {
+                name: true,
+                id: true,
+                descp: true,
+                membersCanPost: true,
+                founder: {
+                    select: {
+                        id: true,
+                        userName: true
                     }
                 }
             }
         })
 
-        if(communityCred === null){
+        if (communityCred === null) {
             res.status(404).json({
-                status : "failure",
-                payload : {
-                    message : "community doesnt exist"
+                status: "failure",
+                payload: {
+                    message: "community doesnt exist"
                 }
             })
             return;
-        }else{
- 
- 
+        } else {
+
+
             await client.communityMembers.create({
-                data : {
-                    communityId : communityCred.id,
-                    memberId : userId
+                data: {
+                    communityId: communityCred.id,
+                    memberId: userId
                 }
             })
 
 
             res.status(200).json({
-                status : "success",
-                payload : {
-                    message : "joined community successfully!",
-                    communityName : communityCred.name,
-                    communitDescription : communityCred.descp,
-                    membersCanPost : communityCred.membersCanPost,
-                    foundersName : communityCred.founder.userName
+                status: "success",
+                payload: {
+                    message: "joined community successfully!",
+                    communityName: communityCred.name,
+                    communitDescription: communityCred.descp,
+                    membersCanPost: communityCred.membersCanPost,
+                    foundersName: communityCred.founder.userName
                 }
             })
 
 
-            
+
         }
-    }catch(e){
+    } catch (e) {
         console.error("Some runtime error\n\n");
         console.error(e);
         res.status(400).json({
-            status : "failure",
-            payload : {
-                message : "Error joining the community, Internal server errro"
+            status: "failure",
+            payload: {
+                message: "Error joining the community, Internal server errro"
             }
         })
         return;
     }
 
 }
- 
 
-export const shareLogin = async (req: Request, res : Response) => {
-    try{
+
+export const shareLogin = async (req: Request, res: Response) => {
+    try {
         const { communityId } = req.body;
 
         const communityCred = await client.community.findFirst({
             where: {
-                id : communityId
-            },select :{
-                hash : true,
-                name : true,
-                password : true
+                id: communityId
+            }, select: {
+                hash: true,
+                name: true,
+                password: true
             }
         })
 
@@ -147,19 +158,19 @@ export const shareLogin = async (req: Request, res : Response) => {
         const message = `Hey there! I'd love for you to join our community on SecondBrain. Just enter this community ID: secondbrain:${communityCred?.name}@${communityCred?.hash} .And that's it — you're now part of our growing space!!`;
 
         res.status(200).json({
-            status : "success",
-            payload : {
-                message 
+            status: "success",
+            payload: {
+                message
             }
         })
         return;
-    }catch(e){
+    } catch (e) {
         console.error("Error happened\n\n");
         console.error(e);
         res.status(400).json({
-            status : "failure",
-            payload : {
-                message : "Internal server error"
+            status: "failure",
+            payload: {
+                message: "Internal server error"
             }
         })
         return;
@@ -168,13 +179,232 @@ export const shareLogin = async (req: Request, res : Response) => {
 
 
 
-export const fetchCommunityContent = (req: Request, res : Response) => {
-    try{
-        res.status(200).json({
-            status : "successs",
-            payload : {message : "You got it"}
-        })
-    }catch(e){
+export const fetchCommunityContent = async (req: Request, res: Response) => {
+    try {
+        const communityId = parseInt(req.query.communityId as string);
+        const limit = parseInt(req.query.limit as string) < 20 ? parseInt(req.query.limit as string) : 20;
+        const page = parseInt(req.query.page as string) || 1;
+        const skip = (page - 1) * limit;
 
+        const count = await client.communityContent.count({
+            where: {
+                communityId
+            }
+        })
+
+        const content = await client.communityContent.findMany({
+            where: { communityId },
+            skip,
+            take: limit,
+            orderBy: [{ content: { createdAt: "desc" } }, { upVotes: "desc" }],
+            select: {
+                content: {
+                    select: {
+                        title: true, note: true, createdAt: true, hyperlink: true, type: true,
+                        tags: { select: { tag: { select: { id: true, title: true } } } },
+                        id: true, user: { select: { userName: true, id: true } },
+                    }
+                },
+                upVotes: true,
+            }
+        })
+
+        res.status(200).json({
+            status: "success",
+            payload: {
+                content,
+                message: content.length === 0 ? "No content found" : "Contents found",
+                more: page * limit < count
+            }
+        })
+
+    } catch (e) {
+        console.error("Error occured in fetch community content\n\n");
+        console.error(e);
+        res.status(500).json({
+            status: "failure",
+            payload: { message: "Internal server" }
+        })
+    }
+}
+
+
+
+export const upVoteDownVote = async (req: Request, res: Response) => {
+    try {
+        const { communityId, contentId, userId, vote } = req.body;
+
+        let statusMessage = "vote counted";
+
+        let upVotes, downVotes;
+
+        await client.$transaction(async (tx) => {
+
+            const pastVote = await tx.voteLog.findFirst({
+                where: {
+                    contentId,
+                    userId
+                }, select: {
+                    vote
+                }
+            })
+
+            if (pastVote) {
+                if (pastVote.vote === vote) {
+                    const votesRes = await tx.communityContent.update({
+                        where: {
+                            contentId,
+                            communityId,
+                        }, data: {
+                            upVotes: vote == "upVote" ? { decrement: 1 } : undefined,
+                            downVotes: vote == "downVote" ? { decrement: 1 } : undefined
+                        }, select: {
+                            upVotes: true,
+                            downVotes: true
+                        }
+                    })
+
+                    await tx.voteLog.delete({
+                        where: {
+                            userId_communityId_contentId: {
+                                userId,
+                                communityId,
+                                contentId
+                            }
+                        }
+                    })
+
+                    upVotes = votesRes.upVotes;
+                    downVotes = votesRes.downVotes;
+                    statusMessage = "vote removed"
+                } else {
+                    const votesRes = await tx.communityContent.update({
+                        where: {
+                            contentId,
+                            communityId
+                        }, data: {
+                            upVotes: vote !== "upVote" ? { decrement: 1 } : { increment: 1 },
+                            downVotes: vote !== "downVote" ? { decrement: 1 } : { increment: 1 }
+                        }, select: {
+                            upVotes: true,
+                            downVotes: true
+                        }
+                    })
+
+                    await tx.voteLog.update({
+                        where: {
+                            userId_communityId_contentId: {
+                                userId,
+                                communityId,
+                                contentId
+                            }
+                        }, data: {
+                            vote
+                        }
+                    });
+
+                    upVotes = votesRes.upVotes;
+                    downVotes = votesRes.downVotes;
+                    statusMessage = "vote switched"
+                }
+            } else {
+                const votesRes = await tx.communityContent.update({
+                    where: {
+                        contentId,
+                        communityId
+                    }, data: {
+                        upVotes: vote == "upVote" ? { increment: 1 } : undefined,
+                        downVotes: vote == "downVote" ? { increment: 1 } : undefined
+                    }, select: {
+                        upVotes: true,
+                        downVotes: true
+                    }
+                })
+
+
+                await tx.voteLog.create({
+                    data: {
+                        userId,
+                        vote,
+                        contentId,
+                        communityId
+                    }
+                })
+
+                upVotes = votesRes.upVotes;
+                downVotes = votesRes.downVotes;
+                statusMessage = "vote added"
+            }
+            return;
+
+        })
+
+        res.status(200).json({
+            status: "Success",
+            payload: {
+                message: statusMessage,
+                upVotes,
+                downVotes
+            }
+        })
+
+    } catch (e) {
+        console.error("Error in voting the content\n\n");
+        console.error(e);
+        res.status(500).json({
+            status: "failure",
+            payload: {
+                message: "Internal server error"
+            }
+        })
+    }
+}
+
+
+
+
+
+
+export const addCommunityContent = async (req: Request, res: Response) => {
+    try {
+        const { title, hyperlink, note, type, userId, communityId } = req.body;
+
+        const content  = await client.$transaction(async (tx) => {
+            const content = await tx.content.create({
+                data: {
+                    hyperlink,
+                    title,
+                    note,
+                    userId,
+                    type
+                }, select: {
+                    id: true,
+                    hyperlink: true,
+                    title: true,
+                    note: true,
+                    userId: true,
+                    type: true
+                }
+            })
+
+            await tx.communityContent.create({
+                data: {
+                    contentId: content.id,
+                    communityId,
+                }
+            })
+
+            return content;
+        })
+
+        res.status(200).json({
+            status : "success",
+            payload : {
+                content
+            }
+        })
+    } catch (e) {
+        console.error("Error adding new content ina community");
+        handleError(e,res);
     }
 }

@@ -18,36 +18,36 @@ const generateHash_1 = require("../utils/generateHash");
 const prismaClient_1 = __importDefault(require("../prismaClient"));
 const server_1 = __importDefault(require("../server"));
 const addContent = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { title, hyperlink, note, type, existingTags, newTags, userId, collectionId } = req.body;
-    const ifExist = yield prismaClient_1.default.contentCollection.findFirst({
-        where: {
-            collection: {
-                is: {
-                    id: collectionId,
-                    userId: userId
+    try {
+        const { title, hyperlink, note, type, existingTags, newTags, userId, collectionId } = req.body;
+        const ifExist = yield prismaClient_1.default.contentCollection.findFirst({
+            where: {
+                collection: {
+                    is: {
+                        id: collectionId,
+                        userId: userId
+                    }
+                },
+                content: {
+                    is: {
+                        hyperlink
+                    }
                 }
             },
-            content: {
-                is: {
-                    hyperlink
-                }
-            }
-        },
-        select: {
-            contentId: true
-        }
-    });
-    if (ifExist && ifExist.contentId) {
-        console.log('user is trying to enter same link in the same collection multiple times');
-        res.status(400).json({
-            status: "failure",
-            payload: {
-                message: "Duplicate entry by user"
+            select: {
+                contentId: true
             }
         });
-        return;
-    }
-    try {
+        if (ifExist && ifExist.contentId) {
+            console.log('user is trying to enter same link in the same collection multiple times');
+            res.status(400).json({
+                status: "failure",
+                payload: {
+                    message: "Duplicate entry by user"
+                }
+            });
+            return;
+        }
         //new tags added
         let filteredNewTags = newTags.filter((tag) => !existingTags.includes(tag));
         //old tags fetched
