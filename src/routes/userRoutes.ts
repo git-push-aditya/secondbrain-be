@@ -3,7 +3,7 @@ import verifyJwt from '../middlewares/jwstAuth'
 import {zodAddContent, zodDeleteContent, meZod, zodSharableLink, zodTaggedContent, zodCreateCollection, zodFetchContent, zodSharedContent, zodCreateCommunity, zodBasicCommunity, zodjoinCommunity, zodVote} from '../middlewares/zodMiddleware';
 import { addContent, deleteCollection, deleteContent, deleteSharedLink, fetchContent, fetchTaggedContent, generateSharableLink, getCommCollList, newCollection, pagedSharedConetnt, sharedContent } from '../controllers/userController';
 import { checkContentCollectionReference, checkContentCommunityRelation, checkUserCommunityRelation, verifyExistingCommunityHash } from '../middlewares/checkContentCollection';
-import { addCommunityContent, createCommunity, fetchCommunityContent, joinCommunity, shareLogin, upVoteDownVote } from '../controllers/communityController';
+import { addCommunityContent, createCommunity, fetchCommunityContent, getUserList, joinCommunity, shareLogin, upVoteDownVote } from '../controllers/communityController';
 
 const router = Router();      
 
@@ -31,7 +31,7 @@ router.get('/fetchtaggedcontent' ,zodTaggedContent, verifyJwt, fetchTaggedConten
 router.post('/removeshare',meZod, verifyJwt,checkContentCollectionReference, deleteSharedLink); //
 
 
-router.get('/communitycollectionlist',meZod, verifyJwt, getCommCollList);///****
+router.get('/communitycollectionlist',meZod, verifyJwt, getCommCollList);///
 //have to add the gpt enpoint
 
 //working: 
@@ -55,12 +55,10 @@ router.get('/getcommunitycontent', zodFetchContent, verifyJwt, checkUserCommunit
 
 router.post('/vote',zodVote, verifyJwt,checkUserCommunityRelation,checkContentCommunityRelation ,upVoteDownVote);
 
-//get users list => on mount of community this is fired in background
+router.get('/getmembers', zodBasicCommunity,verifyJwt,checkUserCommunityRelation,getUserList);
 
 router.post('/addcommunitycontent', zodAddContent, verifyJwt,checkUserCommunityRelation, addCommunityContent);
 
 
 
 export default router;
-
-

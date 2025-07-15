@@ -118,12 +118,15 @@ export const verifyExistingCommunityHash = async (req: Request, res: Response, n
       })
     } else {
       if (communityCred.founder.id === userId || communityCred.members.some((community) => community.memberId === userId)) {
-        res.status(404).json({
+        res.status(409).json({
           status: "failure",
           payload: {
             message: "User is alredy member or founder of the given community"
           }
         })
+      }else{
+        next();
+        return;
       }
     }
     return;

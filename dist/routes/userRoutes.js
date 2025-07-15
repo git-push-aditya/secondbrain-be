@@ -22,7 +22,7 @@ router.get('/paginatedshareddata', zodMiddleware_1.zodSharedContent, userControl
 //not implmemnted//
 router.get('/fetchtaggedcontent', zodMiddleware_1.zodTaggedContent, jwstAuth_1.default, userController_1.fetchTaggedContent); //  
 router.post('/removeshare', zodMiddleware_1.meZod, jwstAuth_1.default, checkContentCollection_1.checkContentCollectionReference, userController_1.deleteSharedLink); //
-router.get('/communitycollectionlist', zodMiddleware_1.meZod, jwstAuth_1.default, userController_1.getCommCollList); ///****
+router.get('/communitycollectionlist', zodMiddleware_1.meZod, jwstAuth_1.default, userController_1.getCommCollList); ///
 //have to add the gpt enpoint
 //working: 
 /*
@@ -36,6 +36,6 @@ router.post('/joinCommunity', zodMiddleware_1.zodjoinCommunity, jwstAuth_1.defau
 router.post('/sharelogin', zodMiddleware_1.zodBasicCommunity, jwstAuth_1.default, checkContentCollection_1.checkUserCommunityRelation, communityController_1.shareLogin); //*
 router.get('/getcommunitycontent', zodMiddleware_1.zodFetchContent, jwstAuth_1.default, checkContentCollection_1.checkUserCommunityRelation, communityController_1.fetchCommunityContent);
 router.post('/vote', zodMiddleware_1.zodVote, jwstAuth_1.default, checkContentCollection_1.checkUserCommunityRelation, checkContentCollection_1.checkContentCommunityRelation, communityController_1.upVoteDownVote);
-//get users list => on mount of community this is fired in background
+router.get('/getmembers', zodMiddleware_1.zodBasicCommunity, jwstAuth_1.default, checkContentCollection_1.checkUserCommunityRelation, communityController_1.getUserList);
 router.post('/addcommunitycontent', zodMiddleware_1.zodAddContent, jwstAuth_1.default, checkContentCollection_1.checkUserCommunityRelation, communityController_1.addCommunityContent);
 exports.default = router;

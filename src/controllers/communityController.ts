@@ -207,6 +207,7 @@ export const fetchCommunityContent = async (req: Request, res: Response) => {
                     }
                 },
                 upVotes: true,
+                downVotes : true
             }
         })
 
@@ -408,6 +409,41 @@ export const addCommunityContent = async (req: Request, res: Response) => {
         })
     } catch (e) {
         console.error("Error adding new content ina community");
+        handleError(e,res);
+    }
+}
+
+
+
+
+export const getUserList = async (req: Request, res: Response) => {
+    try{
+        const {communityId } = req.body;
+
+        const usersList = await client.communityMembers.findMany({
+            where : {
+                communityId
+            },select : {
+                member : {
+                    select : {
+                        userName : true,
+                        id : true
+                    }
+                }
+            }
+        })
+
+        res.status(200).json({
+            status : "success",
+            payload: {
+                message : "got users list",
+                usersList
+            }
+        })
+        return;
+
+    }catch(e){
+        console.error("Error occured in get users endpoint \n\n");
         handleError(e,res);
     }
 }
