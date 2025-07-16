@@ -2,20 +2,8 @@ import { Request, Response } from "express";
 import { generateHash } from "../utils/generateHash";
 import client from "../prismaClient";
 import bcrypt from 'bcrypt'; 
-import { $Enums } from "@prisma/client";
 import handleError from "../utils/handleErrors";
-
-interface cardContent {
-    id: number;
-    userId: number;
-    title: string;
-    hyperlink: string;
-    note: string | null;
-    type: $Enums.Type;
-}
-
-
-
+import { votevalue } from "@prisma/client";
 
 export const createCommunity = async (req: Request, res: Response) => {
 
@@ -197,13 +185,13 @@ export const fetchCommunityContent = async (req: Request, res: Response) => {
             where: { communityId },
             skip,
             take: limit,
-            orderBy: [{ content: { createdAt: "desc" } }, { upVotes: "desc" }],
+            orderBy: [{ upVotes: "desc" },{ downVotes : "asc"}],
             select: {
                 content: {
                     select: {
-                        title: true, note: true, createdAt: true, hyperlink: true, type: true,
-                        tags: { select: { tag: { select: { id: true, title: true } } } },
-                        id: true, user: { select: { userName: true, id: true } },
+                        title: true, note: true, createdAt: true,
+                        hyperlink: true, type: true,id: true,
+                        user: { select: { userName: true, id: true, gender : true } },
                     }
                 },
                 upVotes: true,
@@ -211,7 +199,25 @@ export const fetchCommunityContent = async (req: Request, res: Response) => {
             }
         })
 
-        const enrichedContent = content.map((content) => {return {...content, isOwner : content.content.user.id === userId}})
+        const contentIdList = content.map((el) => (el.content.id))
+
+        const voteByUser = await client.voteLog.findMany({
+            where :  {
+                contentId : { in :  contentIdList},
+                userId
+            },select : {
+                contentId : true,
+                vote : true
+            }
+        })
+
+        const voteMap = new Map(voteByUser.map((v) => [v.contentId, v.vote]));
+
+        const enrichedContent = content.map((c) => ({
+            ...c,
+            isOwner: c.content.user.id === userId,
+            usersVote: voteMap.get(c.content.id) ?? "NONE",
+        }));
 
         res.status(200).json({
             status: "success",
@@ -242,6 +248,7 @@ export const upVoteDownVote = async (req: Request, res: Response) => {
 
         let upVotes, downVotes;
 
+
         await client.$transaction(async (tx) => {
 
             const pastVote = await tx.voteLog.findFirst({
@@ -249,7 +256,7 @@ export const upVoteDownVote = async (req: Request, res: Response) => {
                     contentId,
                     userId
                 }, select: {
-                    vote
+                    vote : true
                 }
             })
 
@@ -427,7 +434,8 @@ export const getUserList = async (req: Request, res: Response) => {
                 member : {
                     select : {
                         userName : true,
-                        id : true
+                        id : true,
+                        gender : true
                     }
                 }
             }

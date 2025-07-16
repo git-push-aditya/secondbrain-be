@@ -15,6 +15,11 @@ enum Type {
   WEB
 }
 
+enum gender {
+  male
+  female
+}
+
 enum votevalue {
   upVote
   downVote
@@ -33,6 +38,7 @@ model user {
   founded    community[]        @relation("CommunityFounder")
   memberOf   communityMembers[]
   votes      voteLog[]
+  gender     gender             @default(male)
 }
 
 model content {

@@ -19,24 +19,22 @@ const handleErrors_1 = __importDefault(require("../utils/handleErrors"));
 const setCookies_1 = require("../utils/setCookies");
 const prismaClient_1 = __importDefault(require("../prismaClient"));
 const signUp = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { userName, email, password, rememberMe } = req.body;
-    console.log('here');
+    const { userName, email, password, rememberMe, gender } = req.body;
     try {
         const ifExist = yield prismaClient_1.default.user.findFirst({
             where: {
                 userName: userName.trim()
             }
         });
-        console.log('here2');
         if (!ifExist) {
             const hashedPassword = yield bcrypt_1.default.hash(password.trim(), 10);
             const newUser = yield prismaClient_1.default.user.create({
                 data: {
                     userName: userName.trim(),
                     password: hashedPassword.trim(),
-                    email: email.trim()
-                },
-                select: {
+                    email: email.trim(),
+                    gender
+                }, select: {
                     id: true
                 }
             });
@@ -58,7 +56,8 @@ const signUp = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 payload: {
                     message: "user created successfully",
                     userName,
-                    email
+                    email,
+                    gender
                 }
             });
         }
@@ -80,7 +79,6 @@ const signUp = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 exports.signUp = signUp;
 const signIn = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { userName, password, rememberMe } = req.body;
-    console.log("reached");
     try {
         const checkUser = yield prismaClient_1.default.user.findFirst({
             where: {
@@ -89,7 +87,8 @@ const signIn = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             select: {
                 password: true,
                 email: true,
-                id: true
+                id: true,
+                gender: true
             }
         });
         if (checkUser) {
@@ -102,7 +101,8 @@ const signIn = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                     status: "success",
                     payload: { message: 'Signed in successfully',
                         userName,
-                        email: checkUser === null || checkUser === void 0 ? void 0 : checkUser.email
+                        email: checkUser === null || checkUser === void 0 ? void 0 : checkUser.email,
+                        gender: checkUser === null || checkUser === void 0 ? void 0 : checkUser.gender
                     }
                 });
             }

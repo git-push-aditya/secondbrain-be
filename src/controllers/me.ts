@@ -3,18 +3,18 @@ import { serialize } from "cookie";
 import client from '../prismaClient';
 
 export const restoreMe = async (req : Request, res : Response) => {
+    console.log("reached")
     const userId = req.body.userId;
     const userDetails = await client.user.findUnique({
         where:{
             id : userId
         },select:{
             userName: true,
-            email: true
+            email: true,
+            gender : true
         }
     })
     if(userDetails){
-
-
 
         const token = req.cookies['token'];
         res.setHeader('Set-Cookie', serialize('token', token, {// Refresh cookie to extend session
@@ -30,7 +30,8 @@ export const restoreMe = async (req : Request, res : Response) => {
             payload: {
                 message :" jwt verified, no need to login/up",
                 userName : userDetails.userName,
-                email : userDetails.email
+                email : userDetails.email,
+                gender : userDetails.gender
             }
         })
         return;
@@ -41,6 +42,5 @@ export const restoreMe = async (req : Request, res : Response) => {
                 message :"continue with login/up"
             }
         })
-    }
-    
+    }    
 }

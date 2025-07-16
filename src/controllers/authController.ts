@@ -4,18 +4,18 @@ import { generateToken } from "../utils/jwts";
 import handleError from "../utils/handleErrors"; 
 import { setCookiesUtils } from "../utils/setCookies";
 import client from '../prismaClient';
+import { gender } from "@prisma/client";
 
 
 export const signUp = async (req: Request, res: Response) => {
-    const {userName,email ,password, rememberMe} = req.body; 
-    console.log('here')
+    const {userName,email ,password, rememberMe, gender} = req.body; 
+    
     try {
         const ifExist = await client.user.findFirst({
             where: {
                 userName: userName.trim()
             }
-        });
-        console.log('here2')
+        }); 
 
         if (!ifExist) {
             const hashedPassword: string = await bcrypt.hash(password.trim(), 10);
@@ -24,9 +24,9 @@ export const signUp = async (req: Request, res: Response) => {
                 data: {
                     userName: userName.trim(),
                     password: hashedPassword.trim(),
-                    email : email.trim()
-                },
-                select: {
+                    email : email.trim(),
+                    gender
+                }, select: {
                     id: true
                 }
             });
@@ -45,7 +45,6 @@ export const signUp = async (req: Request, res: Response) => {
             })
 
 
-
             const token: string = generateToken({userId : newUser.id});
 
             setCookiesUtils(res, token, rememberMe);
@@ -55,7 +54,8 @@ export const signUp = async (req: Request, res: Response) => {
                 payload:{
                    message: "user created successfully",
                    userName,
-                   email
+                   email,
+                   gender
                 }
                 
             })
@@ -82,8 +82,7 @@ export const signUp = async (req: Request, res: Response) => {
 
 export const signIn = async (req: Request, res: Response) => {
 
-    const {userName, password,rememberMe} = req.body;
-    console.log("reached");
+    const {userName, password,rememberMe} = req.body; 
 
     try {
         const checkUser = await client.user.findFirst({
@@ -93,7 +92,8 @@ export const signIn = async (req: Request, res: Response) => {
             select: {
                 password: true,
                 email: true,
-                id: true
+                id: true,
+                gender : true
             }
         })
 
@@ -103,8 +103,6 @@ export const signIn = async (req: Request, res: Response) => {
 
             if (verify) {
                 const token = generateToken({userId : checkUser.id});
-
-
                 setCookiesUtils(res, token, rememberMe);
                 
                 console.log("reachere too")
@@ -112,7 +110,8 @@ export const signIn = async (req: Request, res: Response) => {
                     status: "success",
                     payload: { message: 'Signed in successfully',
                         userName,
-                        email : checkUser?.email
+                        email : checkUser?.email,
+                        gender : checkUser?.gender
                     }
                 });
 
