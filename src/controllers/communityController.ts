@@ -441,11 +441,39 @@ export const getUserList = async (req: Request, res: Response) => {
             }
         })
 
+        const founder = await client.community.findFirst({
+            where : {
+                id : communityId
+            },select : {
+                founder : {
+                    select : {
+                        id : true,
+                        userName  :true,
+                        gender : true
+                    }
+                }
+            }
+        })
+
+        const enrichedContent = [
+            {
+                id: founder?.founder.id ?? -1,
+                userName: founder?.founder?.userName ?? '',
+                gender: founder?.founder?.gender ?? 'male',
+                isFounder: true,
+            },
+            ...usersList.map((m) => ({
+                ...m.member,
+                isFounder: false,
+            }))
+        ];
+
+
         res.status(200).json({
             status : "success",
             payload: {
                 message : "got users list",
-                usersList
+                usersList : enrichedContent
             }
         })
         return;

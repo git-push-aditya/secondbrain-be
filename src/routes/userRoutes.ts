@@ -55,7 +55,7 @@ router.get('/getcommunitycontent', zodFetchContent, verifyJwt, checkUserCommunit
 
 router.post('/vote',zodVote, verifyJwt,checkUserCommunityRelation,checkContentCommunityRelation ,upVoteDownVote);
 
-router.get('/getmembers', zodBasicCommunity,verifyJwt,checkUserCommunityRelation,getUserList);
+router.post('/getmembers', zodBasicCommunity,verifyJwt,checkUserCommunityRelation,getUserList);
 
 router.post('/addcommunitycontent', zodAddContent, verifyJwt,checkUserCommunityRelation, addCommunityContent);
 
