@@ -2,8 +2,7 @@ import { Request, Response } from "express";
 import { generateHash } from "../utils/generateHash";
 import client from "../prismaClient";
 import bcrypt from 'bcrypt'; 
-import handleError from "../utils/handleErrors";
-import { votevalue } from "@prisma/client";
+import handleError from "../utils/handleErrors"; 
 
 export const createCommunity = async (req: Request, res: Response) => {
 
@@ -185,13 +184,17 @@ export const fetchCommunityContent = async (req: Request, res: Response) => {
             where: { communityId },
             skip,
             take: limit,
-            orderBy: [{ upVotes: "desc" },{ downVotes : "asc"}],
+            orderBy: [
+                {createdAt : "desc"},
+                { upVotes: "desc" },
+                { downVotes : "asc"}
+            ],
             select: {
                 content: {
                     select: {
                         title: true, note: true, createdAt: true,
                         hyperlink: true, type: true,id: true,
-                        user: { select: { userName: true, id: true, gender : true } },
+                        user: { select: { userName: true, id: true, profilePic : true } },
                     }
                 },
                 upVotes: true,
@@ -435,7 +438,7 @@ export const getUserList = async (req: Request, res: Response) => {
                     select : {
                         userName : true,
                         id : true,
-                        gender : true
+                        profilePic : true
                     }
                 }
             }
@@ -449,7 +452,7 @@ export const getUserList = async (req: Request, res: Response) => {
                     select : {
                         id : true,
                         userName  :true,
-                        gender : true
+                        profilePic : true
                     }
                 }
             }
@@ -459,7 +462,7 @@ export const getUserList = async (req: Request, res: Response) => {
             {
                 id: founder?.founder.id ?? -1,
                 userName: founder?.founder?.userName ?? '',
-                gender: founder?.founder?.gender ?? 'male',
+                profilePic: founder?.founder?.profilePic ?? 'b1',
                 isFounder: true,
             },
             ...usersList.map((m) => ({

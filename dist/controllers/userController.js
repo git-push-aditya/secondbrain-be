@@ -290,7 +290,8 @@ const sharedContent = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                 },
                 user: {
                     select: {
-                        userName: true
+                        userName: true,
+                        profilePic: true
                     }
                 }
             }
@@ -302,7 +303,8 @@ const sharedContent = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                     message: "Collection is shared// sending metadat",
                     userName: shareExist.user.userName,
                     collectionName: shareExist.collection.name,
-                    collectionDesc: shareExist.collection.desc
+                    collectionDesc: shareExist.collection.desc,
+                    userProfilePic: shareExist.user.profilePic
                 }
             });
         }

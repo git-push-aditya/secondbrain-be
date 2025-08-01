@@ -15,6 +15,7 @@ const signInUpZodMiddleware = (req, res, next) => {
         userName: zod_1.z.string().min(5),
         rememberMe: zod_1.z.boolean(),
         email: zod_1.z.string().email().optional(),
+        profilePic: zod_1.z.enum(['b1', 'b2', 'b3', 'g1', 'g2', 'g3']).optional(),
         password: zod_1.z.string().min(8).max(15).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()|\[\]{}:])/, { message: 'Password must contain at least one lowercase, one upper case and 1 special character.' })
     });
     const parsedObejct = requiredBody.safeParse(req.body);

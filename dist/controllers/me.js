@@ -16,7 +16,6 @@ exports.restoreMe = void 0;
 const cookie_1 = require("cookie");
 const prismaClient_1 = __importDefault(require("../prismaClient"));
 const restoreMe = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("reached");
     const userId = req.body.userId;
     const userDetails = yield prismaClient_1.default.user.findUnique({
         where: {
@@ -24,7 +23,7 @@ const restoreMe = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         }, select: {
             userName: true,
             email: true,
-            gender: true
+            profilePic: true
         }
     });
     if (userDetails) {
@@ -43,7 +42,7 @@ const restoreMe = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 message: " jwt verified, no need to login/up",
                 userName: userDetails.userName,
                 email: userDetails.email,
-                gender: userDetails.gender
+                profilePic: userDetails.profilePic
             }
         });
         return;

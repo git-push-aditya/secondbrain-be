@@ -15,9 +15,13 @@ enum Type {
   WEB
 }
 
-enum gender {
-  male
-  female
+enum profilePic {
+  b1
+  b2
+  b3
+  g1
+  g2
+  g3
 }
 
 enum votevalue {
@@ -38,7 +42,7 @@ model user {
   founded    community[]        @relation("CommunityFounder")
   memberOf   communityMembers[]
   votes      voteLog[]
-  gender     gender             @default(male)
+  profilePic profilePic         @default(b1)
 }
 
 model content {

@@ -19,7 +19,7 @@ const handleErrors_1 = __importDefault(require("../utils/handleErrors"));
 const setCookies_1 = require("../utils/setCookies");
 const prismaClient_1 = __importDefault(require("../prismaClient"));
 const signUp = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { userName, email, password, rememberMe, gender } = req.body;
+    const { userName, email, password, rememberMe, profilePic } = req.body;
     try {
         const ifExist = yield prismaClient_1.default.user.findFirst({
             where: {
@@ -33,7 +33,7 @@ const signUp = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                     userName: userName.trim(),
                     password: hashedPassword.trim(),
                     email: email.trim(),
-                    gender
+                    profilePic
                 }, select: {
                     id: true
                 }
@@ -57,7 +57,7 @@ const signUp = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                     message: "user created successfully",
                     userName,
                     email,
-                    gender
+                    profilePic
                 }
             });
         }
@@ -88,7 +88,7 @@ const signIn = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 password: true,
                 email: true,
                 id: true,
-                gender: true
+                profilePic: true
             }
         });
         if (checkUser) {
@@ -102,7 +102,7 @@ const signIn = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                     payload: { message: 'Signed in successfully',
                         userName,
                         email: checkUser === null || checkUser === void 0 ? void 0 : checkUser.email,
-                        gender: checkUser === null || checkUser === void 0 ? void 0 : checkUser.gender
+                        profilePic: checkUser === null || checkUser === void 0 ? void 0 : checkUser.profilePic
                     }
                 });
             }

@@ -2,8 +2,7 @@ import { Request, Response } from "express";
 import { serialize } from "cookie";
 import client from '../prismaClient';
 
-export const restoreMe = async (req : Request, res : Response) => {
-    console.log("reached")
+export const restoreMe = async (req : Request, res : Response) => { 
     const userId = req.body.userId;
     const userDetails = await client.user.findUnique({
         where:{
@@ -11,7 +10,7 @@ export const restoreMe = async (req : Request, res : Response) => {
         },select:{
             userName: true,
             email: true,
-            gender : true
+            profilePic : true
         }
     })
     if(userDetails){
@@ -31,7 +30,7 @@ export const restoreMe = async (req : Request, res : Response) => {
                 message :" jwt verified, no need to login/up",
                 userName : userDetails.userName,
                 email : userDetails.email,
-                gender : userDetails.gender
+                profilePic : userDetails.profilePic
             }
         })
         return;

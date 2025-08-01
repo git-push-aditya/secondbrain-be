@@ -1,6 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { z } from 'zod';
-import { joinCommunity } from '../controllers/communityController';
+import { z } from 'zod'; 
 
 interface createCommunityType {
     name : String,
@@ -26,6 +25,7 @@ export const signInUpZodMiddleware = (req: Request, res: Response, next: NextFun
         userName: z.string().min(5),
         rememberMe : z.boolean(),
         email : z.string().email().optional(),
+        profilePic: z.enum(['b1','b2','b3','g1','g2','g3']).optional(),
         password: z.string().min(8).max(15).regex(
             /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()|\[\]{}:])/,
             { message: 'Password must contain at least one lowercase, one upper case and 1 special character.' }
@@ -49,6 +49,9 @@ export const signInUpZodMiddleware = (req: Request, res: Response, next: NextFun
 
     next();
 }
+
+
+
 
 export const meZod = (req: Request, res: Response, next: NextFunction) => {
  

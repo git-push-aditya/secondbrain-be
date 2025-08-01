@@ -3,12 +3,11 @@ import bcrypt from 'bcrypt';
 import { generateToken } from "../utils/jwts";
 import handleError from "../utils/handleErrors"; 
 import { setCookiesUtils } from "../utils/setCookies";
-import client from '../prismaClient';
-import { gender } from "@prisma/client";
+import client from '../prismaClient'; 
 
 
 export const signUp = async (req: Request, res: Response) => {
-    const {userName,email ,password, rememberMe, gender} = req.body; 
+    const {userName,email ,password, rememberMe, profilePic} = req.body; 
     
     try {
         const ifExist = await client.user.findFirst({
@@ -25,7 +24,7 @@ export const signUp = async (req: Request, res: Response) => {
                     userName: userName.trim(),
                     password: hashedPassword.trim(),
                     email : email.trim(),
-                    gender
+                    profilePic
                 }, select: {
                     id: true
                 }
@@ -55,7 +54,7 @@ export const signUp = async (req: Request, res: Response) => {
                    message: "user created successfully",
                    userName,
                    email,
-                   gender
+                   profilePic
                 }
                 
             })
@@ -93,7 +92,7 @@ export const signIn = async (req: Request, res: Response) => {
                 password: true,
                 email: true,
                 id: true,
-                gender : true
+                profilePic : true
             }
         })
 
@@ -111,7 +110,7 @@ export const signIn = async (req: Request, res: Response) => {
                     payload: { message: 'Signed in successfully',
                         userName,
                         email : checkUser?.email,
-                        gender : checkUser?.gender
+                        profilePic : checkUser?.profilePic
                     }
                 });
 

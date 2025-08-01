@@ -372,7 +372,8 @@ export const sharedContent = async (req: Request, res: Response) => {
                 },
                 user: {
                     select: {
-                        userName: true
+                        userName: true,
+                        profilePic : true
                     }
                 }
             }
@@ -387,7 +388,8 @@ export const sharedContent = async (req: Request, res: Response) => {
                     message: "Collection is shared// sending metadat",
                     userName: shareExist.user.userName,
                     collectionName: shareExist.collection.name,
-                    collectionDesc: shareExist.collection.desc
+                    collectionDesc: shareExist.collection.desc,
+                    userProfilePic : shareExist.user.profilePic
                 }
             })
 
