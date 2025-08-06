@@ -25,7 +25,8 @@ const scrapeTweets = async (scrapeUrl : string,attempt = 0) => {
         const $ = cheerio.load(data);
 
         const rawTweet = $('.tweet-content.media-body').first().text().trim(); 
-        const refinedTweet = rawTweet.replace(/\s+/g,' ').trim() || '';
+        const rawTweet2 = rawTweet.replace(/\s+/g,' ').trim() || '';
+        const refinedTweet = rawTweet2.length > 7000 ? rawTweet2.slice(0,7000) : rawTweet2;
 
         const hashTags:string[] = [];
         $('.tweet-content.media-body a').each((_,el)=>{
@@ -49,7 +50,7 @@ const scrapeTweets = async (scrapeUrl : string,attempt = 0) => {
             console.warn(`Rate limited. Waiting for ${retryAfter / 1000} seconds...`);
 
             if((retryAfter/1000) > 15){
-                console.log('&WAIT_PERIOD_LIMIT');
+                console.log('WAIT_PERIOD_LIMIT');
                 return {
                     status : 'failure',
                     payload: {

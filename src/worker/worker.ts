@@ -36,7 +36,8 @@ interface cardContent {
 }
 
 const flattenRedditData = (data : any) => {
-    return `Subreddit : ${data?.post?.subreddit || ''} Tittle : ${data?.post?.title || ''} Post : ${data?.post?.subText || ''} Top Comment:${data?.firstComment || ''}  Replies:${data?.repliesToFirstComment.filter(Boolean).join(' ')}`.replace(/\s+/g,' ').trim();
+    const flatternRedditDataRaw = `Subreddit : ${data?.post?.subreddit || ''} Tittle : ${data?.post?.title || ''} Post : ${data?.post?.subText || ''} Top Comment:${data?.firstComment || ''}  Replies:${data?.repliesToFirstComment.filter(Boolean).join(' ')}`.replace(/\s+/g,' ').trim();
+    return flatternRedditDataRaw.length > 10000 ? flatternRedditDataRaw.slice(0,10000) : flatternRedditDataRaw;
 }
 
 const flatternTwitterData = (data : any) => {

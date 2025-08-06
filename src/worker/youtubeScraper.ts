@@ -13,7 +13,6 @@ const getTranscriptViaPuppeteer = async (videoUrl: string) => {
         })
 
         const page = await browser.newPage();
-        await page.setViewport({ width: 1280, height: 800 });;
 
         await page.goto('https://tactiq.io/tools/youtube-transcript', { waitUntil: 'networkidle2' });
 
@@ -36,7 +35,8 @@ const getTranscriptViaPuppeteer = async (videoUrl: string) => {
         });
 
         await browser.close();
-        return transcript;
+        const refinedTranscript = transcript.length > 7000 ? transcript.slice(0,7000) : transcript;
+        return refinedTranscript;
 
     } catch (e) {
         console.error('error spinning up a puppeteer : check \nError :', e);
@@ -61,11 +61,11 @@ const getTranscriptApi = async (videoUrl: string) => {
                 'Referer': 'https://tactiq.io/',
                 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36'
             }
-        }
-        );
+        });
 
         const transcript = response.data?.captions?.map((c: any) => c.text).join(' ');
-        return transcript;
+        const refinedTranscript = transcript.length > 7000 ? transcript.slice(0,7000) : transcript;
+        return refinedTranscript;
     } catch (e) {
         console.error("Erreg getting data from tactiqApi; check api");
         return '';
@@ -112,9 +112,7 @@ const getYoutubeMetaData = async (videoUrl : string ) => {
         const metaData = {
             title: video.snippet.title,
             description: description,
-            channel: video.snippet.channelTitle,
-            views: video.statistics.viewCount,
-            duration: video.contentDetails.duration,
+            channel: video.snippet.channelTitle, 
             publishedAt: video.snippet.publishedAt
         };
 

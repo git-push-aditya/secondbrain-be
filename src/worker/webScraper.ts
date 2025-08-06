@@ -31,7 +31,7 @@ const getWebPageData = async (url : string) => {
 
         const rawTextContent = article?.textContent;
         let refinedContent = rawTextContent?.replace(/\s+/g,' ').trim() || '';
-        refinedContent = refinedContent.length > 7000 ? refinedContent.slice(0,7000) : refinedContent;
+        refinedContent = refinedContent.length > 10000 ? refinedContent.slice(0,10000) : refinedContent;
         
         return {
             status : 'success',
