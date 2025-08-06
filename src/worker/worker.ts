@@ -60,32 +60,34 @@ const flatternInstagramContent = (data : any) =>{
 
 //just add card details ass well to the scraped data 
 const createAndReturnEmbeddings = async ({data,type} : {data: any,type:string}) => {
-    let filteredData : string = '';
-    switch(type){
-        case 'REDDIT':
-            filteredData = flattenRedditData(data.payload);
-            break;
-        case 'TWITTER':
-            filteredData = flatternTwitterData(data.payload);
-            break;
-        case 'YOUTUBE':
-            filteredData = flatternYoutubeData(data.payload); 
-            console.log(filteredData)
-            break;
-        case 'WEB':
-            filteredData = flatterWebData(data.payload);
-            console.log(filteredData)
-            break;
-        case 'INSTAGRAM':
-            filteredData= flatternInstagramContent(data);
-            break;
-        default :
-            console.error('Invalid Tpe');
-            break;
-    }
-    
+
 
     try{
+
+        let filteredData : string = '';
+        switch(type){
+            case 'REDDIT':
+                filteredData = flattenRedditData(data.payload);
+                break;
+            case 'TWITTER':
+                filteredData = flatternTwitterData(data.payload);
+                break;
+            case 'YOUTUBE':
+                filteredData = flatternYoutubeData(data.payload); 
+                console.log(filteredData)
+                break;
+            case 'WEB':
+                filteredData = flatterWebData(data.payload);
+                console.log(filteredData)
+                break;
+            case 'INSTAGRAM':
+                filteredData= flatternInstagramContent(data);
+                break;
+            default :
+                console.error('Invalid Tpe');
+                break;
+        }
+                
         const embed = await embedClient.v2.embed({
             texts: [filteredData],
             model: 'embed-v4.0',
@@ -100,7 +102,8 @@ const createAndReturnEmbeddings = async ({data,type} : {data: any,type:string}) 
             status : 'success',
             payload : {
                 embeddings : embed.embeddings
-            }
+            },
+            filteredData
         };
     }catch(e){
         console.error('Error creataing embedding \n');
@@ -152,6 +155,7 @@ const handleScrapeAndPostEmbeddings = async ({card,type} : {card : any,type :str
 
         //note : userId  => card.id   //card id(post gress) used to give id to corresponding embeddign
         let id :number = 675;
+        let contentId = 424;
         const userId = 22;
         const embeddings = await createAndReturnEmbeddings({data,type}); 
 
@@ -163,7 +167,9 @@ const handleScrapeAndPostEmbeddings = async ({card,type} : {card : any,type :str
                     id: `${id}`,              // Use content ID from your DB
                     values: embeddings.payload?.embeddings?.float?.[0],             // Your embedding vector (1024 floats)
                     metadata: {
-                        userId: userId            // For filtering per user
+                        userId: userId,            // For filtering per user
+                        contentId : contentId,
+                        content : embeddings?.filteredData ?? ""
                     }
                 }
             ]);
