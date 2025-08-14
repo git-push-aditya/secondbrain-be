@@ -45,8 +45,7 @@ const flatternTwitterData = (data : any) => {
 }
 
 const flatternYoutubeData = (data:any) => { 
-    const transcript = data.transcript.length > 8000 ? data.transcript.slice(0,8000) : data.transcript;
-    return `Transcript : ${transcript} Metadata : { title: ${data?.metadata?.title} description :${data?.metadata?.description} channel : ${data?.metadata?.channel}}`.replace(/\s+/g,' ').trim(); 
+    return ` Metadata : { title: ${data?.metadata?.title} description :${data?.metadata?.description} channel : ${data?.metadata?.channel}}`.replace(/\s+/g,' ').trim(); 
 }
 
 const flatterWebData = (data:any) => {
@@ -58,7 +57,7 @@ const flatternInstagramContent = (data : any) =>{
     return`hyperlink :${data.hyperlink} note: ${data.note} title : ${data.title} tags : ${data.tags.map((el :any) => el.title)}`.trim();
 }
 
-//just add card details ass well to the scraped data 
+
 const createAndReturnEmbeddings = async ({data,type} : {data: any,type:string}) => {
 
 
@@ -119,25 +118,23 @@ const createAndReturnEmbeddings = async ({data,type} : {data: any,type:string}) 
 
 
 
-//card : cardContent
-const handleScrapeAndPostEmbeddings = async ({card,type} : {card : any,type :string}) : Promise<any> => {
+const handleScrapeAndPostEmbeddings = async ({card,type} : {card : cardContent,type :string}) : Promise<any> => {
 
     let data;
 
     try{
         switch(type){
-            case 'WEB':
-                //everywhere below : card.hyperlink instead of card okay..
-                data = await getWebPageData(card)
+            case 'WEB': 
+                data = await getWebPageData(card.hyperlink)
                 break;
             case 'REDDIT':
-                data = await scrapeRedditPost(card);
+                data = await scrapeRedditPost(card.hyperlink);
                 break;
             case 'TWITTER':
-                data = await scrapeTweets(card)
+                data = await scrapeTweets(card.hyperlink)
                 break;
             case 'YOUTUBE':
-                data = await scrapeYoutubeVideoData(card)
+                data = await scrapeYoutubeVideoData(card.hyperlink)
                 break;
             case 'INSTAGRAM':
                 data = {
@@ -152,11 +149,10 @@ const handleScrapeAndPostEmbeddings = async ({card,type} : {card : any,type :str
                 break;
         } 
         console.log(data)
+ 
+        let contentId = card.id;
+        const userId = card.userId;
 
-        //note : userId  => card.id   //card id(post gress) used to give id to corresponding embeddign
-        let id :number = 675;
-        let contentId = 424;
-        const userId = 22;
         const embeddings = await createAndReturnEmbeddings({data,type}); 
 
         //pushing embedding to db
@@ -164,8 +160,8 @@ const handleScrapeAndPostEmbeddings = async ({card,type} : {card : any,type :str
             console.log(embeddings.payload?.embeddings?.float?.[0])
             await store.upsert([
                 {
-                    id: `${id}`,              // Use content ID from your DB
-                    values: embeddings.payload?.embeddings?.float?.[0],             // Your embedding vector (1024 floats)
+                    id: `${contentId}`,              // Use content ID from your DB
+                    values: embeddings.payload?.embeddings?.float?.[0],// Your embedding vector (1024 floats)
                     metadata: {
                         userId: userId,            // For filtering per user
                         contentId : contentId,
@@ -173,10 +169,6 @@ const handleScrapeAndPostEmbeddings = async ({card,type} : {card : any,type :str
                     }
                 }
             ]);
- 
-
-            id += 1; 
- 
 
         }else{
             console.error('\n\nissue: creating embedding\n\n');
@@ -208,11 +200,13 @@ const startWorker = async() => {
             let content;
             try{
                 content = await redisClient.brPop('embedQueue',0);
-                //const card = JSON.parse(content?.element!); 
-                const card = content?.element;
-                const type = 'YOUTUBE';
-                //const scrapedData  = await handleScrape({card,type :card?.type}) ;
+
+                const contentEl = JSON.parse(content?.element!); 
+                const card : cardContent = contentEl?.element;
+                const type = card?.type; 
+
                 const result  = await handleScrapeAndPostEmbeddings({card,type }) ;
+
                 if(result.status === 'failure'){
                     throw new Error;
                 }else{

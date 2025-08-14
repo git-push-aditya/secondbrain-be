@@ -16,6 +16,7 @@ exports.deleteCollection = exports.getCommCollList = exports.newCollection = exp
 const handleErrors_1 = __importDefault(require("../utils/handleErrors"));
 const generateHash_1 = require("../utils/generateHash");
 const prismaClient_1 = __importDefault(require("../prismaClient"));
+const server_1 = __importDefault(require("../server"));
 const addContent = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { title, hyperlink, note, type, existingTags, newTags, userId, collectionId } = req.body;
@@ -106,7 +107,7 @@ const addContent = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         }));
         const enrichedContent = Object.assign(Object.assign({}, newContent), { tags: tagsList, userId });
         //userid is needed in the redis queue to segregate vector based on user
-        //await redisClient.lPush('embedQueue', JSON.stringify(enrichedContent));
+        yield server_1.default.lPush('embedQueue', JSON.stringify(enrichedContent));
         res.status(200).json({
             status: "success",
             payload: {

@@ -8,7 +8,7 @@ puppeteer.use(StealthPlugin());
 const getTranscriptViaPuppeteer = async (videoUrl: string) => {
     try {
         const browser = await puppeteer.launch({
-            headless: true,
+            headless: false,
             args: ['--no-sandbox']
         })
 
@@ -25,14 +25,18 @@ const getTranscriptViaPuppeteer = async (videoUrl: string) => {
         });
 
 
-        await page.waitForSelector('#transcript ul');
+        await page.waitForSelector('#transcript ul li a', { timeout: 60000 });
 
         const transcript = await page.evaluate(() => {
-            return Array.from(document.querySelectorAll('#transcript ul li'))
-                .map(li => li.querySelector('a')?.innerText.trim())
-                .filter(Boolean)
-                .join(' ').replace(/\s+/g, ' ').trim();
+            return Array.from(document.querySelectorAll('#transcript ul li a'))
+                .map(a => (a as HTMLElement).innerText.trim()) // or HTMLAnchorElement
+                .filter(text => text.length > 0)
+                .join(' ')
+                .replace(/\s+/g, ' ')
+                .trim();
         });
+            
+
 
         await browser.close();
         const refinedTranscript = transcript.length > 7000 ? transcript.slice(0,7000) : transcript;
@@ -48,44 +52,10 @@ const getTranscriptViaPuppeteer = async (videoUrl: string) => {
 
 
 
-const getTranscriptApi = async (videoUrl: string) => {
-
-    try {
-        const response = await axios.post('https://tactiq-apps-prod.tactiq.io/transcript', {
-            langCode: 'en',
-            videoUrl
-        }, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Origin': 'https://tactiq.io',
-                'Referer': 'https://tactiq.io/',
-                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36'
-            }
-        });
-
-        const transcript = response.data?.captions?.map((c: any) => c.text).join(' ');
-        const refinedTranscript = transcript.length > 7000 ? transcript.slice(0,7000) : transcript;
-        return refinedTranscript;
-    } catch (e) {
-        console.error("Erreg getting data from tactiqApi; check api");
-        return '';
-    }
-
-};
-
 const getYoutubeTranscript = async (videoUrl: string) => {
-    try {
-        const transcript = await getTranscriptApi(videoUrl);
-        if (transcript === '') {
-            const puppetEerTranscript = await getTranscriptViaPuppeteer(videoUrl);
-            if (puppetEerTranscript === '') {
-                return '';
-            } else {
-                return puppetEerTranscript;
-            }
-        }
-
-        return transcript;
+    try { 
+        const puppetEerTranscript = await getTranscriptViaPuppeteer(videoUrl);
+        return puppetEerTranscript;
     } catch (e) {
         console.error('Error getting transcript via tactiq or puppeteer..\nError', e);
         return '';
@@ -126,15 +96,8 @@ const getYoutubeMetaData = async (videoUrl : string ) => {
  
 
 const scrapeYoutubeVideoData = async (videoUrl:string) => {
-    try{
-        let youtubeTranscript;
+    try{ 
         let youtubeMetaData ;
-        try{
-            youtubeTranscript = await getYoutubeTranscript(videoUrl);
-        }catch(e){
-            console.error('Error fetching transcript');
-            youtubeTranscript = '';
-        }
 
         try{
             youtubeMetaData = await getYoutubeMetaData(videoUrl);
@@ -145,8 +108,7 @@ const scrapeYoutubeVideoData = async (videoUrl:string) => {
         
         return {
             status : 'success',
-            payload :{
-                transcript : youtubeTranscript,
+            payload :{ 
                 metadata : youtubeMetaData 
             } 
         };
