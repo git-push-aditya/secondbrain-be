@@ -16,7 +16,12 @@ exports.deleteCollection = exports.getCommCollList = exports.newCollection = exp
 const handleErrors_1 = __importDefault(require("../utils/handleErrors"));
 const generateHash_1 = require("../utils/generateHash");
 const prismaClient_1 = __importDefault(require("../prismaClient"));
+const pinecone_1 = require("@pinecone-database/pinecone");
 const server_1 = __importDefault(require("../server"));
+const pinecone = new pinecone_1.Pinecone({
+    apiKey: process.env.PINECONE_VDB_API_KEY || ''
+});
+const store = pinecone.index('secondbrain');
 const addContent = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { title, hyperlink, note, type, existingTags, newTags, userId, collectionId } = req.body;
@@ -107,6 +112,7 @@ const addContent = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         }));
         const enrichedContent = Object.assign(Object.assign({}, newContent), { tags: tagsList, userId });
         //userid is needed in the redis queue to segregate vector based on user
+        console.log("before pushing to queue, the enriched content\n", JSON.stringify(enrichedContent));
         yield server_1.default.lPush('embedQueue', JSON.stringify(enrichedContent));
         res.status(200).json({
             status: "success",
@@ -129,6 +135,8 @@ const deleteContent = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             select: { id: true }
         });
         console.log(deletedPost);
+        yield store._deleteOne(`${contentId}`);
+        console.log("Vector deleted with id", contentId);
         res.status(200).json({
             status: "success",
             payload: {

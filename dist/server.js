@@ -23,6 +23,7 @@ const me_1 = require("./controllers/me");
 const helmet_1 = __importDefault(require("helmet"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const redis_1 = require("redis");
+//note when you delete a content also delete its embedding
 dotenv_1.default.config();
 const redisClient = (0, redis_1.createClient)();
 redisClient.on('error', (err) => {

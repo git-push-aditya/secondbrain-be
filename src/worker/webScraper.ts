@@ -14,7 +14,7 @@ const getWebPageData = async (url : string) => {
             'Pragma': 'no-cache',
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
-            'DNT': '1', // Do Not Track
+            'DNT': '1',
             'Sec-Fetch-Dest': 'document',
             'Sec-Fetch-Mode': 'navigate',
             'Sec-Fetch-Site': 'none',

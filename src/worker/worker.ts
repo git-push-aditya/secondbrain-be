@@ -6,8 +6,8 @@ import getWebPageData from './webScraper';
 import { CohereClient } from 'cohere-ai';
 import { Pinecone } from '@pinecone-database/pinecone';
 import dotenv from 'dotenv'; 
-dotenv.config();
-//need to do this before spinning up puppeteer: npx puppeteer browsers install chrome
+dotenv.config(); 
+
 const redisClient = createClient();
 
 const embedClient = new CohereClient({
@@ -195,23 +195,24 @@ const handleScrapeAndPostEmbeddings = async ({card,type} : {card : cardContent,t
 
 const startWorker = async() => {
     try{
+        console.log("worker started")
         await redisClient.connect();
         while(1){
             let content;
             try{
                 content = await redisClient.brPop('embedQueue',0);
-
-                const contentEl = JSON.parse(content?.element!); 
-                const card : cardContent = contentEl?.element;
+                console.log(content)
+                const card : cardContent = JSON.parse(content?.element!);  
                 const type = card?.type; 
-
+                console.log(card)
                 const result  = await handleScrapeAndPostEmbeddings({card,type }) ;
 
                 if(result.status === 'failure'){
                     throw new Error;
                 }else{
                     console.log('\n\n\n Done and dusted fr !!')
-                }
+                } 
+
             }catch(e){
                 console.error("Some error occured scraping the content or ambedding the content; pushed to error queue",e,content);
                 redisClient.lPush('errorQueue',content?.element || JSON.stringify(content));

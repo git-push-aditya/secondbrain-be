@@ -10,6 +10,9 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { createClient } from 'redis';
 
+
+//note when you delete a content also delete its embedding
+
 dotenv.config();
 const redisClient = createClient();
 redisClient.on('error', (err) => {

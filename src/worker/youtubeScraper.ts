@@ -1,67 +1,6 @@
-import puppeteer from 'puppeteer-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 import axios from 'axios';
 
-puppeteer.use(StealthPlugin());
-
-
-const getTranscriptViaPuppeteer = async (videoUrl: string) => {
-    try {
-        const browser = await puppeteer.launch({
-            headless: false,
-            args: ['--no-sandbox']
-        })
-
-        const page = await browser.newPage();
-
-        await page.goto('https://tactiq.io/tools/youtube-transcript', { waitUntil: 'networkidle2' });
-
-        await page.type('input#yt-2', videoUrl);
-
-        await page.evaluate(() => {
-            const buttons = Array.from(document.querySelectorAll('input[type="submit"]')) as HTMLInputElement[];
-            const btn = buttons.find(b => b.value?.toLowerCase().includes('video transcript'));
-            btn?.click();
-        });
-
-
-        await page.waitForSelector('#transcript ul li a', { timeout: 60000 });
-
-        const transcript = await page.evaluate(() => {
-            return Array.from(document.querySelectorAll('#transcript ul li a'))
-                .map(a => (a as HTMLElement).innerText.trim()) // or HTMLAnchorElement
-                .filter(text => text.length > 0)
-                .join(' ')
-                .replace(/\s+/g, ' ')
-                .trim();
-        });
-            
-
-
-        await browser.close();
-        const refinedTranscript = transcript.length > 7000 ? transcript.slice(0,7000) : transcript;
-        return refinedTranscript;
-
-    } catch (e) {
-        console.error('error spinning up a puppeteer : check \nError :', e);
-        return '';
-    }
-
-}
-
-
-
-
-const getYoutubeTranscript = async (videoUrl: string) => {
-    try { 
-        const puppetEerTranscript = await getTranscriptViaPuppeteer(videoUrl);
-        return puppetEerTranscript;
-    } catch (e) {
-        console.error('Error getting transcript via tactiq or puppeteer..\nError', e);
-        return '';
-    }
-}
-
+ 
 const extractVideoId = (videoUrl : string) => {
   const regex = /(?:youtube\.com\/.*v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/;
   const match = videoUrl.match(regex);

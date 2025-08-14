@@ -2,7 +2,14 @@ import { Request, Response } from 'express';
 import handleError from '../utils/handleErrors';
 import { generateHash } from '../utils/generateHash';
 import client from '../prismaClient';
+import { Pinecone } from '@pinecone-database/pinecone';
 import redisClient from '../server';
+
+const pinecone = new Pinecone({
+  apiKey: process.env.PINECONE_VDB_API_KEY || '' 
+});
+
+const store = pinecone.index('secondbrain');
 
 
 interface AddContentType {
@@ -155,7 +162,7 @@ export const addContent = async (req: Request<{}, {}, AddContentType>, res: Resp
 
         const enrichedContent = { ...newContent, tags: tagsList, userId };
         //userid is needed in the redis queue to segregate vector based on user
-
+        console.log("before pushing to queue, the enriched content\n",JSON.stringify(enrichedContent))
         await redisClient.lPush('embedQueue', JSON.stringify(enrichedContent));
 
 
@@ -187,6 +194,8 @@ export const deleteContent = async (req: Request, res: Response) => {
         })
         console.log(deletedPost);
 
+        await store._deleteOne(`${contentId}`);
+        console.log("Vector deleted with id", contentId)
 
         res.status(200).json({
             status: "success",
