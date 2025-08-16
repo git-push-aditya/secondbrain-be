@@ -111,8 +111,6 @@ const addContent = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             return { newContent, tagsList };
         }));
         const enrichedContent = Object.assign(Object.assign({}, newContent), { tags: tagsList, userId });
-        //userid is needed in the redis queue to segregate vector based on user
-        console.log("before pushing to queue, the enriched content\n", JSON.stringify(enrichedContent));
         yield server_1.default.lPush('embedQueue', JSON.stringify(enrichedContent));
         res.status(200).json({
             status: "success",

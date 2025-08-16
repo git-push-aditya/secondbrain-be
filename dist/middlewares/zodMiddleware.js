@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.zodVote = exports.zodjoinCommunity = exports.zodBasicCommunity = exports.zodCreateCommunity = exports.zodCreateCollection = exports.zodTaggedContent = exports.zodSharableLink = exports.zodDeleteContent = exports.zodAddContent = exports.zodSharedContent = exports.zodFetchContent = exports.meZod = exports.signInUpZodMiddleware = void 0;
+exports.zodChatBot = exports.zodVote = exports.zodjoinCommunity = exports.zodBasicCommunity = exports.zodCreateCommunity = exports.zodCreateCollection = exports.zodTaggedContent = exports.zodSharableLink = exports.zodDeleteContent = exports.zodAddContent = exports.zodSharedContent = exports.zodFetchContent = exports.meZod = exports.signInUpZodMiddleware = void 0;
 const zod_1 = require("zod");
 const requiredCookie = zod_1.z.object({
     token: zod_1.z
@@ -362,3 +362,34 @@ const zodVote = (req, res, next) => {
     return;
 };
 exports.zodVote = zodVote;
+const zodChatBot = (req, res, next) => {
+    const requiredBody = zod_1.z.object({
+        userQuery: zod_1.z.string()
+    });
+    const cookieCheck = requiredCookie.safeParse(req.cookies);
+    const bodyCheck = requiredBody.safeParse(req.body);
+    if (cookieCheck.success && bodyCheck.success) {
+        next();
+        return;
+    }
+    else if (!cookieCheck.success) {
+        console.error("session logout");
+        res.status(401).json({
+            status: "failure",
+            payload: {
+                message: "Session timed out, re-login"
+            }
+        });
+    }
+    else {
+        console.error("Passed parameters are invalid");
+        res.status(400).json({
+            status: "failure",
+            payload: {
+                message: "Passed parameters for voting are invalid"
+            }
+        });
+    }
+    return;
+};
+exports.zodChatBot = zodChatBot;

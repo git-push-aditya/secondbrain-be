@@ -426,3 +426,37 @@ export const zodVote = ( req: Request, res : Response , next : NextFunction) => 
     } 
     return;
 }
+
+
+export const zodChatBot = ( req: Request, res : Response , next : NextFunction) => {
+    const requiredBody = z.object({
+        userQuery : z.string()
+    })
+    const cookieCheck = requiredCookie.safeParse(req.cookies);
+
+    const bodyCheck = requiredBody.safeParse(req.body);
+
+    if(cookieCheck.success && bodyCheck.success){ 
+        next(); 
+        return;
+    }else if(!cookieCheck.success){
+        console.error("session logout"); 
+        res.status(401).json({
+            status : "failure",
+            payload : {
+                message : "Session timed out, re-login"
+            }
+        })
+    }else{ 
+        console.error("Passed parameters are invalid"); 
+        res.status(400).json({
+            status : "failure",
+            payload  : {
+                message : "Passed parameters for voting are invalid"
+
+            }
+        })
+    } 
+    return;
+    
+}

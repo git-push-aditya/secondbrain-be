@@ -73,11 +73,9 @@ const createAndReturnEmbeddings = async ({data,type} : {data: any,type:string}) 
                 break;
             case 'YOUTUBE':
                 filteredData = flatternYoutubeData(data.payload); 
-                console.log(filteredData)
                 break;
             case 'WEB':
-                filteredData = flatterWebData(data.payload);
-                console.log(filteredData)
+                filteredData = flatterWebData(data.payload); 
                 break;
             case 'INSTAGRAM':
                 filteredData= flatternInstagramContent(data);
@@ -95,8 +93,7 @@ const createAndReturnEmbeddings = async ({data,type} : {data: any,type:string}) 
             embeddingTypes: ['float']
         })
 
- 
-        console.log(embed.meta?.billedUnits?.inputTokens+'\n') 
+  
         return {
             status : 'success',
             payload : {
@@ -147,8 +144,7 @@ const handleScrapeAndPostEmbeddings = async ({card,type} : {card : cardContent,t
             default : 
                 console.log('Undefined type');
                 break;
-        } 
-        console.log(data)
+        }  
  
         let contentId = card.id;
         const userId = card.userId;
@@ -156,8 +152,7 @@ const handleScrapeAndPostEmbeddings = async ({card,type} : {card : cardContent,t
         const embeddings = await createAndReturnEmbeddings({data,type}); 
 
         //pushing embedding to db
-        if(embeddings.status === 'success'){
-            console.log(embeddings.payload?.embeddings?.float?.[0])
+        if(embeddings.status === 'success'){ 
             await store.upsert([
                 {
                     id: `${contentId}`,              // Use content ID from your DB
@@ -200,19 +195,14 @@ const startWorker = async() => {
         while(1){
             let content;
             try{
-                content = await redisClient.brPop('embedQueue',0);
-                console.log(content)
+                content = await redisClient.brPop('embedQueue',0); 
                 const card : cardContent = JSON.parse(content?.element!);  
-                const type = card?.type; 
-                console.log(card)
+                const type = card?.type;  
                 const result  = await handleScrapeAndPostEmbeddings({card,type }) ;
 
                 if(result.status === 'failure'){
                     throw new Error;
-                }else{
-                    console.log('\n\n\n Done and dusted fr !!')
-                } 
-
+                }
             }catch(e){
                 console.error("Some error occured scraping the content or ambedding the content; pushed to error queue",e,content);
                 redisClient.lPush('errorQueue',content?.element || JSON.stringify(content));

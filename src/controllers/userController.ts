@@ -160,9 +160,7 @@ export const addContent = async (req: Request<{}, {}, AddContentType>, res: Resp
 
         })
 
-        const enrichedContent = { ...newContent, tags: tagsList, userId };
-        //userid is needed in the redis queue to segregate vector based on user
-        console.log("before pushing to queue, the enriched content\n",JSON.stringify(enrichedContent))
+        const enrichedContent = { ...newContent, tags: tagsList, userId }; 
         await redisClient.lPush('embedQueue', JSON.stringify(enrichedContent));
 
 
