@@ -364,7 +364,10 @@ const zodVote = (req, res, next) => {
 exports.zodVote = zodVote;
 const zodChatBot = (req, res, next) => {
     const requiredBody = zod_1.z.object({
-        userQuery: zod_1.z.string()
+        lastSevenMessages: zod_1.z.array(zod_1.z.object({
+            role: zod_1.z.enum(['user', 'assistant']),
+            content: zod_1.z.string()
+        }))
     });
     const cookieCheck = requiredCookie.safeParse(req.cookies);
     const bodyCheck = requiredBody.safeParse(req.body);

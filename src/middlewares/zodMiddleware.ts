@@ -430,7 +430,12 @@ export const zodVote = ( req: Request, res : Response , next : NextFunction) => 
 
 export const zodChatBot = ( req: Request, res : Response , next : NextFunction) => {
     const requiredBody = z.object({
-        userQuery : z.string()
+        lastSevenMessages : z.array(
+            z.object({
+                role : z.enum(['user' , 'assistant']),
+                content : z.string()
+            })
+        )
     })
     const cookieCheck = requiredCookie.safeParse(req.cookies);
 
