@@ -433,7 +433,8 @@ export const zodChatBot = ( req: Request, res : Response , next : NextFunction) 
         lastSevenMessages : z.array(
             z.object({
                 role : z.enum(['user' , 'assistant']),
-                content : z.string()
+                content : z.string(),
+                toStream : z.boolean()
             })
         )
     })

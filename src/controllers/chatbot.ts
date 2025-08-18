@@ -13,6 +13,11 @@ export const chatbot = async (req: Request, res: Response) => {
   try { 
     const { lastSevenMessages } = req.body;
 
+    const refindMessages = lastSevenMessages.map((el: any) => ({
+      role: el.role,
+      content: el.content,
+    }));
+
 
     const response = await cohere.chat({
       model: 'command-a-03-2025',
@@ -21,7 +26,7 @@ export const chatbot = async (req: Request, res: Response) => {
           role : "system",
           content : systemMessage
         },
-        ...lastSevenMessages
+        ...refindMessages
       ],
     });
 

@@ -366,7 +366,8 @@ const zodChatBot = (req, res, next) => {
     const requiredBody = zod_1.z.object({
         lastSevenMessages: zod_1.z.array(zod_1.z.object({
             role: zod_1.z.enum(['user', 'assistant']),
-            content: zod_1.z.string()
+            content: zod_1.z.string(),
+            toStream: zod_1.z.boolean()
         }))
     });
     const cookieCheck = requiredCookie.safeParse(req.cookies);
