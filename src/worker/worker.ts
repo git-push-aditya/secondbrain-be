@@ -155,8 +155,8 @@ const handleScrapeAndPostEmbeddings = async ({card,type} : {card : cardContent,t
         if(embeddings.status === 'success'){ 
             await store.upsert([
                 {
-                    id: `${contentId}`,              // Use content ID from your DB
-                    values: embeddings.payload?.embeddings?.float?.[0],// Your embedding vector (1024 floats)
+                    id: `${contentId}`,              // Use content ID from postgres DB
+                    values: embeddings.payload?.embeddings?.float?.[0],// embedding vector (1024 floats)
                     metadata: {
                         userId: userId,            // For filtering per user
                         contentId : contentId,
