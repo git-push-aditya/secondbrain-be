@@ -426,14 +426,12 @@ export const pagedSharedConetnt = async (req: Request, res: Response) => {
     const limit = req.query.limit as string;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    console.log("reached here 1");
     const collectionId = await client.link.findFirst({
         where: { hash },
         select: { collectionId: true }
     });
 
     if (collectionId === null) {
-        console.log("reached here - not supposed to ");
         console.error("unauthorized access")
         res.status(400).json({
             status: "failure",
@@ -444,7 +442,6 @@ export const pagedSharedConetnt = async (req: Request, res: Response) => {
         return;
     }
     try {  //more field in the return which
-        console.log("reached here 2");
         const count = await client.contentCollection.count({
             where: {
                 collectionId: collectionId.collectionId
@@ -461,6 +458,7 @@ export const pagedSharedConetnt = async (req: Request, res: Response) => {
             },
             skip,
             take: parseInt(limit),
+            orderBy :[{content: {createdAt : "desc"}}],
             select: {
                 collectionId: true,
                 content: {

@@ -338,13 +338,11 @@ const pagedSharedConetnt = (req, res) => __awaiter(void 0, void 0, void 0, funct
     const page = req.query.page;
     const limit = req.query.limit;
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    console.log("reached here 1");
     const collectionId = yield prismaClient_1.default.link.findFirst({
         where: { hash },
         select: { collectionId: true }
     });
     if (collectionId === null) {
-        console.log("reached here - not supposed to ");
         console.error("unauthorized access");
         res.status(400).json({
             status: "failure",
@@ -355,7 +353,6 @@ const pagedSharedConetnt = (req, res) => __awaiter(void 0, void 0, void 0, funct
         return;
     }
     try { //more field in the return which
-        console.log("reached here 2");
         const count = yield prismaClient_1.default.contentCollection.count({
             where: {
                 collectionId: collectionId.collectionId
@@ -372,6 +369,7 @@ const pagedSharedConetnt = (req, res) => __awaiter(void 0, void 0, void 0, funct
             },
             skip,
             take: parseInt(limit),
+            orderBy: [{ content: { createdAt: "desc" } }],
             select: {
                 collectionId: true,
                 content: {
