@@ -85,7 +85,6 @@ export const chatbot = async (req: Request, res: Response) => {
     }))
 
 
-
     const rawContext = result[0].metadata?.content ?? " ";
     const score = result[0].score;
     console.log(`{Score bitchass: ${score}}` );

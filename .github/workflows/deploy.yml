@@ -1,0 +1,29 @@
+name : Continous Deployment
+on :
+  push :
+    branches : [ main ]
+
+jobs : 
+  build : 
+    runs-on : ubuntu-latest
+    steps : 
+      - name : Cloning repo
+        uses : actions/checkout@v2
+        with :
+          fetch-depth : 0
+
+      - name : Docker login
+        uses : actions/login-action@v2
+        with : 
+          username : ${{ secrets.DOCKERHUB_USERNAME }}
+          password : ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name : Build n'push
+        uses : docker/build-push-action@v4
+        with : 
+          context : .
+          file : Dockerfile
+          push : true
+          tags : secondbrain/prod:${{ github.sha }}
+
+
