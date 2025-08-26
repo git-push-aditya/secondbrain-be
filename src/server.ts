@@ -10,8 +10,8 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { createClient } from 'redis';
 
-
 dotenv.config();
+
 const redisClient = createClient();
 redisClient.on('error', (err) => {
   console.error('redis client error : ', err);
@@ -21,14 +21,24 @@ redisClient.on('reconnecting', () => {
 });
 
 
-
 const app = express();
 
+const allowedOrigins = ['https://secondbrain.vercel','http://localhost:5173'];
 
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: (origin, callback) => {
+    if (!origin) { 
+      return callback(null, true);
+    }
+    if (allowedOrigins.includes(origin)) { 
+      return callback(null, true);
+    } else {
+      return callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
+
 app.use(helmet());
 
 app.use(cookieParser());

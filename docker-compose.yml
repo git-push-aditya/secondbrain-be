@@ -1,38 +1,28 @@
-version : "3.8"
+version: "3.8"
 
-services : 
-  backend:
-    build : 
-      context : .
-      dockerfile : Dockerfile
-      container_name: backend
-      enviornment : 
-        -DATABASE_URL=${DATABASE_URL}
-        -BASE_LINK=${BASE_LINK}
-        -YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
-        -CHAT_API_KEY=${CHAT_API_KEY}
-        -EMBED_API_KEY=${EMBED_API_KEY}
-        -PINECONE_VDB_API_KEY=${PINECONE_VDB_API_KEY}
-        -JWT_SECRET=${JWT_SECRET}
-      ports :
-        -2233:2233
-      depends_on:
-        queue: 
-          condition : service_healthy
+services: 
+  backend:  
+    image: 11xenon11/secondbrain:${LATEST_IMAGE_TAG}
+    container_name: backend
+    restart: always
+    env_file: .env
+    ports:
+      - "2233:2233"
+    depends_on:
+      queue: 
+        condition: service_healthy
 
   queue:
-    image : redis
-    container_name : queue
-    restart : always
-    port : 
-      -6379:6379
+    image: redis:alpine
+    container_name: queue
+    restart: always 
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD","redis-cli","ping"]
-      interval : 10s
-      timeout : 5s
-      retries : 5
+      test: ["CMD-SHELL", "redis-cli ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-volumes : 
+volumes: 
   redis_data:

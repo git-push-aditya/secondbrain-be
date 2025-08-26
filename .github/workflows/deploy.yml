@@ -1,29 +1,51 @@
-name : Continous Deployment
-on :
-  push :
-    branches : [ main ]
+name: Continous Deployment
+on:
+  push:
+    branches: [ main ]
 
-jobs : 
-  build : 
-    runs-on : ubuntu-latest
-    steps : 
-      - name : Cloning repo
-        uses : actions/checkout@v2
-        with :
-          fetch-depth : 0
+jobs: 
+  build: 
+    runs-on: ubuntu-latest
+    steps: 
+      - name: Cloning repo
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
-      - name : Docker login
-        uses : actions/login-action@v2
-        with : 
-          username : ${{ secrets.DOCKERHUB_USERNAME }}
-          password : ${{ secrets.DOCKERHUB_PASSWORD }}
+      - name: Docker login
+        uses: actions/login-action@v2
+        with: 
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-      - name : Build n'push
-        uses : docker/build-push-action@v4
-        with : 
-          context : .
-          file : Dockerfile
-          push : true
-          tags : secondbrain/prod:${{ github.sha }}
+      - name: Build n'push
+        uses: docker/build-push-action@v4
+        with: 
+          context: .
+          file: Dockerfile
+          push: true
+          tags: 11xenon11/secondbrain:${{ github.sha }}
 
+      - name: SSH & Deploy
+        uses: appleboy/ssh-action@v0.1.10 
+        with: 
+          host: ${{ secrets.HOST_IP }}
+          username: ubuntu
+          key: ${{  secrets.PRIVATE_KEY }}
+          script: |
+            cd ~/secondbrain
+
+            echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
+            echo "BASE_LINK=${{ secrets.BASE_LINK }}" >> .env
+            echo "YOUTUBE_API_KEY=${{ secrets.YOUTUBE_API_KEY }}" >> .env
+            echo "CHAT_API_KEY=${{ secrets.CHAT_API_KEY }}" >> .env
+            echo "EMBED_API_KEY=${{ secrets.EMBED_API_KEY }}" >> .env
+            echo "PINECONE_VDB_API_KEY=${{ secrets.PINECONE_VDB_API_KEY }}" >> .env
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env 
+      
+            echo "LATEST_IMAGE_TAG=${{ github.sha }}" > .env.deploy
+            docker compose --env-file .env.deploy pull
+            docker compose down       
+            docker compose --env-file .env.deploy up -d --remove-orphans
+            docker image prune -af
 
