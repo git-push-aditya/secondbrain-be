@@ -75,18 +75,6 @@ model collection {
   @@unique([name, userId])
 }
 
-/**
- * Note: befoer:
- * model content :   collection contentCollection[]
- * &&
- * model contentCollection {
- * collectionId Int
- * contentId    Int
- * collection   collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
- * content      content    @relation(fields: [contentId], references: [id],onDelete :Cascade)
- * @@id([contentId, collectionId])
- * }
- */
 
 model contentCollection {
   collectionId Int
