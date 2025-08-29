@@ -9,8 +9,21 @@ import { restoreMe } from "./controllers/me";
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { createClient } from 'redis';
+import client from "./prismaClient"
+
 
 dotenv.config();
+
+
+
+
+
+process.on("SIGINT", async () => {
+  await client.$disconnect();
+  console.log("signing off")
+  process.exit(0);
+});
+
 
 const redisClient = createClient();
 redisClient.on('error', (err) => {
@@ -45,7 +58,7 @@ app.use(cookieParser());
 app.use(express.json());
 
 app.use('/auth', authRoutes);
-app.use('/user', userRoutes);
+app.use('/user', userRoutes); 
 
 app.get('/me', meZod, verifyJwt, restoreMe);
 

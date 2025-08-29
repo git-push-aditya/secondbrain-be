@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import { generateHash } from "../utils/generateHash";
 import client from "../prismaClient";
-import bcrypt from 'bcrypt'; 
-import handleError from "../utils/handleErrors"; 
+import bcrypt from 'bcrypt';
+import handleError from "../utils/handleErrors";
 
 export const createCommunity = async (req: Request, res: Response) => {
 
@@ -174,45 +174,55 @@ export const fetchCommunityContent = async (req: Request, res: Response) => {
         const page = parseInt(req.query.page as string) || 1;
         const skip = (page - 1) * limit;
 
-        const count = await client.communityContent.count({
-            where: {
-                communityId
-            }
-        })
-
         const content = await client.communityContent.findMany({
             where: { communityId },
             skip,
             take: limit,
             orderBy: [
-                {createdAt : "desc"},
+                { createdAt: "desc" },
                 { upVotes: "desc" },
-                { downVotes : "asc"}
+                { downVotes: "asc" }
             ],
             select: {
                 content: {
                     select: {
-                        title: true, note: true, createdAt: true,
-                        hyperlink: true, type: true,id: true,
-                        user: { select: { userName: true, id: true, profilePic : true } },
+                        title: true,
+                        note: true,
+                        createdAt: true,
+                        hyperlink: true,
+                        type: true,
+                        id: true,
+                        user: {
+                            select: {
+                                userName: true,
+                                id: true,
+                                profilePic: true
+                            }
+                        }
                     }
                 },
                 upVotes: true,
-                downVotes : true
+                downVotes: true
             }
-        })
+        });
 
-        const contentIdList = content.map((el) => (el.content.id))
 
-        const voteByUser = await client.voteLog.findMany({
-            where :  {
-                contentId : { in :  contentIdList},
-                userId
-            },select : {
-                contentId : true,
-                vote : true
-            }
-        })
+        const [count, voteByUser] = await Promise.all([
+            client.communityContent.count({
+                where: { communityId }
+            }),
+
+            client.voteLog.findMany({
+                where: {
+                    contentId: { in: content.map((el) => el.content.id) },
+                    userId
+                },
+                select: {
+                    contentId: true,
+                    vote: true
+                }
+            })
+        ]);
 
         const voteMap = new Map(voteByUser.map((v) => [v.contentId, v.vote]));
 
@@ -225,7 +235,7 @@ export const fetchCommunityContent = async (req: Request, res: Response) => {
         res.status(200).json({
             status: "success",
             payload: {
-                content : enrichedContent,
+                content: enrichedContent,
                 message: content.length === 0 ? "No content found" : "Contents found",
                 more: page * limit < count
             }
@@ -259,7 +269,7 @@ export const upVoteDownVote = async (req: Request, res: Response) => {
                     contentId,
                     userId
                 }, select: {
-                    vote : true
+                    vote: true
                 }
             })
 
@@ -383,7 +393,7 @@ export const addCommunityContent = async (req: Request, res: Response) => {
     try {
         const { title, hyperlink, note, type, userId, communityId } = req.body;
 
-        const content  = await client.$transaction(async (tx) => {
+        const content = await client.$transaction(async (tx) => {
             const content = await tx.content.create({
                 data: {
                     hyperlink,
@@ -412,14 +422,14 @@ export const addCommunityContent = async (req: Request, res: Response) => {
         })
 
         res.status(200).json({
-            status : "success",
-            payload : {
+            status: "success",
+            payload: {
                 content
             }
         })
     } catch (e) {
         console.error("Error adding new content ina community");
-        handleError(e,res);
+        handleError(e, res);
     }
 }
 
@@ -427,36 +437,36 @@ export const addCommunityContent = async (req: Request, res: Response) => {
 
 
 export const getUserList = async (req: Request, res: Response) => {
-    try{
-        const {communityId } = req.body;
+    try {
+        const { communityId } = req.body;
 
-        const usersList = await client.communityMembers.findMany({
-            where : {
-                communityId
-            },select : {
-                member : {
-                    select : {
-                        userName : true,
-                        id : true,
-                        profilePic : true
+        const [usersList, founder] = await Promise.all([
+            client.communityMembers.findMany({
+                where: { communityId },
+                select: {
+                    member: {
+                        select: {
+                            userName: true,
+                            id: true,
+                            profilePic: true
+                        }
                     }
                 }
-            }
-        })
-
-        const founder = await client.community.findFirst({
-            where : {
-                id : communityId
-            },select : {
-                founder : {
-                    select : {
-                        id : true,
-                        userName  :true,
-                        profilePic : true
+            }),
+            client.community.findFirst({
+                where: { id: communityId },
+                select: {
+                    founder: {
+                        select: {
+                            id: true,
+                            userName: true,
+                            profilePic: true
+                        }
                     }
                 }
-            }
-        })
+            })
+        ]);
+
 
         const enrichedContent = [
             {
@@ -473,16 +483,16 @@ export const getUserList = async (req: Request, res: Response) => {
 
 
         res.status(200).json({
-            status : "success",
+            status: "success",
             payload: {
-                message : "got users list",
-                usersList : enrichedContent
+                message: "got users list",
+                usersList: enrichedContent
             }
         })
         return;
 
-    }catch(e){
+    } catch (e) {
         console.error("Error occured in get users endpoint \n\n");
-        handleError(e,res);
+        handleError(e, res);
     }
 }

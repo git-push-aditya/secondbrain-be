@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "index.js", 
   "scripts": {
     "build": "tsc -b",
     "start": "concurrently --kill-others-on-fail  \"node ./dist/server.js\" \"node ./dist/worker/worker.js\"",

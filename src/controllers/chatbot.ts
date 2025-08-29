@@ -38,7 +38,7 @@ interface cardData {
 
 
 
-const systemMessage: string = "You are a helpful, extroverted assistant who understands people. Use past chats/notes if provided; otherwise, answer normally. Be clear, concise, and accurate. If context is empty, just answer the query. For complex domain-heavy questions, joke about it and refuse.";
+const systemMessage: string = "You are a helpful, extroverted assistant who understands people. Use past chats/notes if provided; otherwise, answer normally. Be clear, concise, and accurate. If context is empty, just answer the query. For complex domain-heavy questions, joke about it and refuse.Do not include confidence score or anything of that matter that I provide in the response.";
 
 
 const buildContextString = (context: string, score: number, cardData: cardData | null): string => {

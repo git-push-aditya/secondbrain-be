@@ -6,7 +6,7 @@ import { Pinecone } from '@pinecone-database/pinecone';
 import redisClient from '../server';
 
 const pinecone = new Pinecone({
-  apiKey: process.env.PINECONE_VDB_API_KEY || '' 
+    apiKey: process.env.PINECONE_VDB_API_KEY || ''
 });
 
 const store = pinecone.index('secondbrain');
@@ -160,7 +160,7 @@ export const addContent = async (req: Request<{}, {}, AddContentType>, res: Resp
 
         })
 
-        const enrichedContent = { ...newContent, tags: tagsList, userId }; 
+        const enrichedContent = { ...newContent, tags: tagsList, userId };
         await redisClient.lPush('embedQueue', JSON.stringify(enrichedContent));
 
 
@@ -170,7 +170,7 @@ export const addContent = async (req: Request<{}, {}, AddContentType>, res: Resp
                 message: "Content created successfully",
                 content: enrichedContent
             }
-        }) 
+        })
 
     } catch (e) {
         handleError(e, res);
@@ -192,8 +192,7 @@ export const deleteContent = async (req: Request, res: Response) => {
         })
         console.log(deletedPost);
 
-        await store._deleteOne(`${contentId}`);
-        console.log("Vector deleted with id", contentId)
+        await store._deleteOne(`${contentId}`); 
 
         res.status(200).json({
             status: "success",
@@ -224,56 +223,60 @@ export const fetchContent = async (req: Request<{}, {}, fetchUserId>, res: Respo
 
     try {
 
-        const count = await client.contentCollection.count({
-            where: {
-                collection: {
-                    is: {
-                        userId
-                    }
+        const [count, content] = await Promise.all([
+            client.contentCollection.count({
+                where: {
+                    collection: {
+                        is: {
+                            userId
+                        }
+                    },
+                    collectionId: collectionId
+                }
+            }),
+
+            client.contentCollection.findMany({
+                where: {
+                    collection: {
+                        is: {
+                            userId
+                        }
+                    },
+                    collectionId: collectionId,
                 },
-                collectionId: collectionId
-            }
-        })
-        const content = await client.contentCollection.findMany({
-            where: {
-                collection: {
-                    is: {
-                        userId
-                    }
-                },
-                collectionId: collectionId,
-            },
-            skip,
-            take: limit,
-            select: {
-                collectionId: true,
-                content: {
-                    select: {
-                        id: true,
-                        title: true,
-                        hyperlink: true,
-                        note: true,
-                        createdAt: true,
-                        type: true,
-                        tags: {
-                            select: {
-                                tag: {
-                                    select: {
-                                        id: true,
-                                        title: true
+                skip,
+                take: limit,
+                select: {
+                    collectionId: true,
+                    content: {
+                        select: {
+                            id: true,
+                            title: true,
+                            hyperlink: true,
+                            note: true,
+                            createdAt: true,
+                            type: true,
+                            tags: {
+                                select: {
+                                    tag: {
+                                        select: {
+                                            id: true,
+                                            title: true
+                                        }
                                     }
                                 }
                             }
                         }
                     }
+                },
+                orderBy: {
+                    content: {
+                        createdAt: "desc"
+                    }
                 }
-            },
-            orderBy: {
-                content: {
-                    createdAt: "desc"
-                }
-            }
-        });
+            })
+        ]);
+
 
 
 
@@ -317,21 +320,25 @@ export const generateSharableLink = async (req: Request<{}, {}, fetchUserId>, re
 
             const hash = generateHash();
 
-            await client.link.create({
-                data: {
-                    userId: userId,
-                    hash: hash,
-                    collectionId: collectionId
-                }
-            });
+            await Promise.all([
+                client.link.create({
+                    data: {
+                        userId: userId,
+                        hash: hash,
+                        collectionId: collectionId
+                    }
+                }),
 
-            await client.collection.update({
-                where: {
-                    id: collectionId
-                }, data: {
-                    shared: true
-                }
-            })
+                client.collection.update({
+                    where: {
+                        id: collectionId
+                    },
+                    data: {
+                        shared: true
+                    }
+                })
+            ]);
+
 
             const generatedLink: string = `http://localhost:5173/sharedbrain/?id=${hash}`;
 
@@ -380,7 +387,7 @@ export const sharedContent = async (req: Request, res: Response) => {
                 user: {
                     select: {
                         userName: true,
-                        profilePic : true
+                        profilePic: true
                     }
                 }
             }
@@ -396,7 +403,7 @@ export const sharedContent = async (req: Request, res: Response) => {
                     userName: shareExist.user.userName,
                     collectionName: shareExist.collection.name,
                     collectionDesc: shareExist.collection.desc,
-                    userProfilePic : shareExist.user.profilePic
+                    userProfilePic: shareExist.user.profilePic
                 }
             })
 
@@ -442,47 +449,51 @@ export const pagedSharedConetnt = async (req: Request, res: Response) => {
         return;
     }
     try {  //more field in the return which
-        const count = await client.contentCollection.count({
-            where: {
-                collectionId: collectionId.collectionId
-            }
-        })
-        const paginatedSharedData = await client.contentCollection.findMany({
-            where: {
-                collectionId: collectionId.collectionId,
-                collection: {
-                    is: {
-                        shared: true
-                    }
+        const [count, paginatedSharedData] = await Promise.all([
+            client.contentCollection.count({
+                where: {
+                    collectionId: collectionId.collectionId
                 }
-            },
-            skip,
-            take: parseInt(limit),
-            orderBy :[{content: {createdAt : "desc"}}],
-            select: {
-                collectionId: true,
-                content: {
-                    select: {
-                        id: true,
-                        title: true,
-                        hyperlink: true,
-                        createdAt: true,
-                        note: true,
-                        type: true,
-                        tags: {
-                            select: {
-                                tag: {
-                                    select: {
-                                        id: true,
-                                        title: true
+            }),
+
+            client.contentCollection.findMany({
+                where: {
+                    collectionId: collectionId.collectionId,
+                    collection: {
+                        is: {
+                            shared: true
+                        }
+                    }
+                },
+                skip,
+                take: parseInt(limit),
+                orderBy: [{ content: { createdAt: "desc" } }],
+                select: {
+                    collectionId: true,
+                    content: {
+                        select: {
+                            id: true,
+                            title: true,
+                            hyperlink: true,
+                            createdAt: true,
+                            note: true,
+                            type: true,
+                            tags: {
+                                select: {
+                                    tag: {
+                                        select: {
+                                            id: true,
+                                            title: true
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
-            }
-        })
+            })
+        ]);
+
         res.status(200).json({
             status: "success",
             payload: {
@@ -645,20 +656,24 @@ export const fetchTaggedContent = async (req: Request<{}, {}, taggedContent>, re
 export const deleteSharedLink = async (req: Request<{}, {}, fetchUserId>, res: Response) => {
     const { userId, collectionId } = req.body;
     try {
-        await client.link.delete({
-            where: {
-                userId: userId,
-                collectionId: collectionId
-            }
-        });
+        await client.$transaction([
+            client.link.delete({
+                where: {
+                    userId: userId,
+                    collectionId: collectionId
+                }
+            }),
 
-        await client.collection.update({
-            where: {
-                id: collectionId
-            }, data: {
-                shared: false
-            }
-        })
+            client.collection.update({
+                where: {
+                    id: collectionId
+                },
+                data: {
+                    shared: false
+                }
+            })
+        ]);
+
         res.status(200).json({
             status: "success",
             payload: {
@@ -712,9 +727,6 @@ export const newCollection = async (req: Request<{}, {}, { userId: number, colle
 
 
 
-/// in /me i send a list of user collection and its id and also send a list of existing tags, in frontend before api call we seprate the list from existing and new
-
-//alson on frontend make seure before api call no two collections have same name
 
 
 
@@ -723,43 +735,50 @@ export const getCommCollList = async (req: Request, res: Response) => {
     const { userId } = req.body;
 
     try {
-        const collectionList = await client.collection.findMany({
-            where: {
-                userId: userId
-            }, select: {
-                id: true,
-                name: true,
-                shared: true
-            }
-        })
+        const [collectionList, tagsList, communitylist] = await Promise.all([
+            client.collection.findMany({
+                where: {
+                    userId: userId
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    shared: true
+                }
+            }),
 
-        const tagsList = await client.tags.findMany({
-            select: {
-                title: true
-            }
-        })
+            client.tags.findMany({
+                select: {
+                    title: true
+                }
+            }),
 
-        const communitylist = await client.user.findMany({
-            where: {
-                id: userId
-            }, select: {
-                founded: {
-                    select: {
-                        name: true,
-                        id: true
-                    }
-                }, memberOf: {
-                    select: {
-                        community: {
-                            select: {
-                                name: true,
-                                id: true
+            client.user.findMany({
+                where: {
+                    id: userId
+                },
+                select: {
+                    founded: {
+                        select: {
+                            name: true,
+                            id: true
+                        }
+                    },
+                    memberOf: {
+                        select: {
+                            community: {
+                                select: {
+                                    name: true,
+                                    id: true
+                                }
                             }
                         }
                     }
                 }
-            }
-        })
+            })
+        ])
+
+
 
         const list = communitylist[0];
         const founded = (list.founded || []).map(community => ({
@@ -818,30 +837,36 @@ export const deleteCollection = async (req: Request, res: Response) => {
         return;
     }
     try {////made changes her
-        const contentToDelete = await client.content.findMany({
-            where: {
-                collection: {
-                    is: {
-                        collectionId: collectionId,
+        const deletedDashboard = await client.$transaction(async (tx) => {
+            const contentToDelete = await tx.content.findMany({
+                where: {
+                    collection: {
+                        is: {
+                            collectionId: collectionId,
+                        },
                     },
                 },
-            },
-            select: { id: true }
-        });
-        await client.content.deleteMany({
-            where: {
-                id: { in: contentToDelete.map(c => c.id) }
+                select: { id: true }
+            });
+
+            if (contentToDelete.length > 0) {
+                await tx.content.deleteMany({
+                    where: {
+                        id: { in: contentToDelete.map(c => c.id) }
+                    }
+                });
             }
+
+            return tx.collection.delete({
+                where: {
+                    id: collectionId
+                },
+                select: {
+                    id: true
+                }
+            });
         });
 
-
-        const deletedDashboard = await client.collection.delete({
-            where: {
-                id: collectionId
-            }, select: {
-                id: true
-            }
-        })
 
         res.status(200).json({
             status: "success",
