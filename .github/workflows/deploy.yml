@@ -51,7 +51,7 @@ jobs:
 
             echo "DATABASE_URL='${{ secrets.DATABASE_URL }}'" > .env
             echo "BASE_LINK='${{ secrets.BASE_LINK }}'" >> .env
-            echo "YOUTUBE_API_KEY='${{ secrets.YOUTUBE_API_KEY }'}" >> .env
+            echo "YOUTUBE_API_KEY='${{ secrets.YOUTUBE_API_KEY }}'" >> .env
             echo "CHAT_API_KEY='${{ secrets.CHAT_API_KEY }}'" >> .env
             echo "EMBED_API_KEY='${{ secrets.EMBED_API_KEY }}'" >> .env
             echo "PINECONE_VDB_API_KEY='${{ secrets.PINECONE_VDB_API_KEY }}'" >> .env
