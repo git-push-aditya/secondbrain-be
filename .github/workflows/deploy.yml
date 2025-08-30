@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     steps: 
       - name: Cloning repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -25,25 +25,40 @@ jobs:
           file: Dockerfile
           push: true
           tags: 11xenon11/secondbrain:${{ github.sha }}
+          cache-from: type=registry,ref=11xenon11/secondbrain:buildcache
+          cache-to: type=registry,ref=11xenon11/secondbrain:buildcache,mode=max
+          pull: true
+
+      - name: Copy docker-compose.yml to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST_IP }}
+          username: ubuntu
+          key: ${{ secrets.PRIVATE_KEY }}
+          source: "docker-compose.yml"
+          target: "~/secondbrain/"
+
 
       - name: SSH & Deploy
-        uses: appleboy/ssh-action@v0.1.10 
+        uses: appleboy/ssh-action@v0.1.10
         with: 
           host: ${{ secrets.HOST_IP }}
           username: ubuntu
           key: ${{  secrets.PRIVATE_KEY }}
           script: |
+            set -e  # exit on error
             cd ~/secondbrain
 
-            echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
-            echo "BASE_LINK=${{ secrets.BASE_LINK }}" >> .env
-            echo "YOUTUBE_API_KEY=${{ secrets.YOUTUBE_API_KEY }}" >> .env
-            echo "CHAT_API_KEY=${{ secrets.CHAT_API_KEY }}" >> .env
-            echo "EMBED_API_KEY=${{ secrets.EMBED_API_KEY }}" >> .env
-            echo "PINECONE_VDB_API_KEY=${{ secrets.PINECONE_VDB_API_KEY }}" >> .env
-            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env 
+            echo "DATABASE_URL='${{ secrets.DATABASE_URL }}'" > .env
+            echo "BASE_LINK='${{ secrets.BASE_LINK }}'" >> .env
+            echo "YOUTUBE_API_KEY='${{ secrets.YOUTUBE_API_KEY }'}" >> .env
+            echo "CHAT_API_KEY='${{ secrets.CHAT_API_KEY }}'" >> .env
+            echo "EMBED_API_KEY='${{ secrets.EMBED_API_KEY }}'" >> .env
+            echo "PINECONE_VDB_API_KEY='${{ secrets.PINECONE_VDB_API_KEY }}'" >> .env
+            echo "JWT_SECRET='${{ secrets.JWT_SECRET }}'" >> .env 
       
-            echo "LATEST_IMAGE_TAG=${{ github.sha }}" > .env.deploy
+            echo "LATEST_IMAGE_TAG='${{ github.sha }}'" > .env.deploy
+
             docker compose --env-file .env.deploy pull
             docker compose down       
             docker compose --env-file .env.deploy up -d --remove-orphans
