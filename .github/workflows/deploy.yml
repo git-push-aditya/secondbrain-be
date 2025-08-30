@@ -68,5 +68,6 @@ jobs:
             docker compose --env-file .env.deploy pull
             docker compose down       
             docker compose --env-file .env.deploy up -d --remove-orphans
-            docker image prune -af
+            docker image prune -af  
+        timeout-minutes: 30 
 
