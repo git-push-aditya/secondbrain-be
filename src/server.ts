@@ -36,7 +36,7 @@ redisClient.on('reconnecting', () => {
 
 const app = express();
 
-const allowedOrigins = [ 'http://localhost:5173','secondbrain.notaditya.dev'];
+const allowedOrigins = [ 'http://localhost:5173','https://secondbrain.notaditya.dev'];
 
 app.use(cors({
   origin: (origin, callback) => {
