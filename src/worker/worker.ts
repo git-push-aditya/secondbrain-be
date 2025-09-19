@@ -8,7 +8,9 @@ import { Pinecone } from '@pinecone-database/pinecone';
 import dotenv from 'dotenv'; 
 dotenv.config(); 
 
-const redisClient = createClient();
+const redisClient = createClient({
+    url : 'redis://queue:6379'
+});
 
 const embedClient = new CohereClient({
     token : process.env.EMBED_API_KEY
