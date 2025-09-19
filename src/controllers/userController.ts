@@ -339,7 +339,7 @@ export const generateSharableLink = async (req: Request<{}, {}, fetchUserId>, re
                 })
             ]);
 
-
+                                        //here I need to add the seondbrain.vercel kinda link
             const generatedLink: string = `http://localhost:5173/sharedbrain/?id=${hash}`;
 
             res.status(200).json({

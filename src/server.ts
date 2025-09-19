@@ -14,9 +14,7 @@ import client from "./prismaClient"
 
 dotenv.config();
 
-
-
-
+ 
 
 process.on("SIGINT", async () => {
   await client.$disconnect();
@@ -25,7 +23,9 @@ process.on("SIGINT", async () => {
 });
 
 
-const redisClient = createClient();
+const redisClient = createClient({
+  url : 'redis://queue:6379'
+});
 redisClient.on('error', (err) => {
   console.error('redis client error : ', err);
 })
@@ -36,7 +36,7 @@ redisClient.on('reconnecting', () => {
 
 const app = express();
 
-const allowedOrigins = ['https://secondbrain.vercel','http://localhost:5173'];
+const allowedOrigins = [ 'http://localhost:5173','secondbrain.notaditya.dev'];
 
 app.use(cors({
   origin: (origin, callback) => {
