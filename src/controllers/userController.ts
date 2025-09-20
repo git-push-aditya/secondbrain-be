@@ -338,9 +338,8 @@ export const generateSharableLink = async (req: Request<{}, {}, fetchUserId>, re
                     }
                 })
             ]);
-
-                                        //here I need to add the seondbrain.vercel kinda link
-            const generatedLink: string = `http://localhost:5173/sharedbrain/?id=${hash}`;
+ 
+            const generatedLink: string = `https://secondbrain.notaditya.dev/sharedbrain/?id=${hash}`;
 
             res.status(200).json({
                 status: "success",
@@ -351,7 +350,7 @@ export const generateSharableLink = async (req: Request<{}, {}, fetchUserId>, re
             })
 
         } else {
-            const generatedLink: string = `http://localhost:5173/sharedbrain/?id=${check?.hash}`;
+            const generatedLink: string = `https://secondbrain.notaditya.dev/?id=${check?.hash}`;
             res.status(200).json({
                 status: "success",
                 payload: {
