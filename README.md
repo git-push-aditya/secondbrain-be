@@ -51,8 +51,6 @@ This repo provides the API server, background workers, queueing, scraping, embed
 ├─ package.json
 ├─ tsconfig.json
 └─ README.md
-yaml
-Copy code
 ```
 
 ---
