@@ -1,6 +1,7 @@
 import {signInUpZodMiddleware} from '../middlewares/zodMiddleware';
 import { Router } from 'express';
 import {signUp, signIn} from '../controllers/authController'
+import { cookieOptions } from '../utils/setCookies';
 
 const router = Router();
 
@@ -9,12 +10,7 @@ router.post('/signin', signInUpZodMiddleware, signIn);
 
 
 router.post('/logout', (req, res) => {
-  res.clearCookie("token", {
-    httpOnly: true,
-    secure: false, // or `isProd`
-    sameSite: "strict",
-    path: "/"
-  });
+  res.clearCookie("token", cookieOptions);
   res.status(200).json({
     status: "success",
     payload: {

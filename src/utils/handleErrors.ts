@@ -64,12 +64,12 @@ const handleError = (e: any, res: Response) => {
         });
 
     } else if (e instanceof JsonWebTokenError) {
-        console.log("Invalid token");
+        console.log("Invalid token", e.message);
         res.status(401).json({
             status: "failure",
             payload: {
-                message: "Unauthorized access"
-            } 
+                message: "Invalid session token/ Re-login"
+            }
         })
 
     } else {
