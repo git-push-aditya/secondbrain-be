@@ -24,7 +24,7 @@ process.on("SIGINT", async () => {
 
 
 const redisClient = createClient({
-  url : 'redis://queue:6379'
+  url : process.env.REDIS_URL || 'redis://queue:6379'
 });
 redisClient.on('error', (err) => {
   console.error('redis client error : ', err);
@@ -36,7 +36,11 @@ redisClient.on('reconnecting', () => {
 
 const app = express();
 
-const allowedOrigins = [ 'http://localhost:5173','https://secondbrain.notaditya.dev'];
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://secondbrain.notaditya.dev',
+  ...(process.env.ALLOWED_ORIGINS?.split(',').map(origin => origin.trim()).filter(Boolean) || [])
+];
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -66,8 +70,9 @@ const startServer = async () => {
   try {
     await redisClient.connect();
     console.log('successfully connected to redis client');
-    app.listen(2233, () => {
-      console.log("Server started at port 2233");
+    const port = process.env.PORT || 2233;
+    app.listen(port, () => {
+      console.log(`Server started at port ${port}`);
     });
   } catch (e) {
     console.error('something happened :', e);

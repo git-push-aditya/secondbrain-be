@@ -5,6 +5,8 @@
   "scripts": {
     "build": "tsc -b",
     "start": "concurrently --kill-others-on-fail  \"node ./dist/server.js\" \"node ./dist/worker/worker.js\"",
+    "start:web": "node ./dist/server.js",
+    "start:worker": "node ./dist/worker/worker.js",
     "dev": "concurrently --kill-others-on-fail \"nodemon --watch src --exec ts-node ./src/server.ts\" \"nodemon --watch src/worker --exec ts-node ./src/worker/worker.ts\"",
     "container:start": "npm run build && npm run start "
   },

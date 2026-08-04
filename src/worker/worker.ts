@@ -9,7 +9,7 @@ import dotenv from 'dotenv';
 dotenv.config(); 
 
 const redisClient = createClient({
-    url : 'redis://queue:6379'
+    url : process.env.REDIS_URL || 'redis://queue:6379'
 });
 
 const embedClient = new CohereClient({

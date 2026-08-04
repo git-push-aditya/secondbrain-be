@@ -9,6 +9,8 @@ services:
     container_name: backend
     restart: always
     env_file: .env
+    environment:
+      REDIS_URL: redis://queue:6379
     ports:
       - "2233:2233"
     depends_on:
