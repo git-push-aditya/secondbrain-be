@@ -11,10 +11,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: REDIS_URL
-        fromService:
-          type: redis
-          name: secondbrain-redis
-          property: connectionString
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET
@@ -44,19 +41,10 @@ services:
       - key: NODE_ENV
         value: production
       - key: REDIS_URL
-        fromService:
-          type: redis
-          name: secondbrain-redis
-          property: connectionString
+        sync: false
       - key: YOUTUBE_API_KEY
         sync: false
       - key: EMBED_API_KEY
         sync: false
       - key: PINECONE_VDB_API_KEY
         sync: false
-
-  - type: redis
-    name: secondbrain-redis
-    plan: starter
-    ipAllowList: []
-    maxmemoryPolicy: noeviction
