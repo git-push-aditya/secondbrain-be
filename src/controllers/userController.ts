@@ -3,7 +3,7 @@ import handleError from '../utils/handleErrors';
 import { generateHash } from '../utils/generateHash';
 import client from '../prismaClient';
 import { Pinecone } from '@pinecone-database/pinecone';
-import redisClient from '../server';
+import { embedContent } from '../worker/worker';
 
 const pinecone = new Pinecone({
     apiKey: process.env.PINECONE_VDB_API_KEY || ''
@@ -161,8 +161,6 @@ export const addContent = async (req: Request<{}, {}, AddContentType>, res: Resp
         })
 
         const enrichedContent = { ...newContent, tags: tagsList, userId };
-        await redisClient.lPush('embedQueue', JSON.stringify(enrichedContent));
-
 
         res.status(200).json({
             status: "success",
@@ -171,6 +169,11 @@ export const addContent = async (req: Request<{}, {}, AddContentType>, res: Resp
                 content: enrichedContent
             }
         })
+
+        //fire-and-forget: scrape + embed happens after the response is sent, no queue/worker needed
+        embedContent({ card: enrichedContent, type: enrichedContent.type }).catch((e) => {
+            console.error('Error embedding content in background', e);
+        });
 
     } catch (e) {
         handleError(e, res);

@@ -1,16 +1,11 @@
-import { createClient } from 'redis';
 import scrapeYoutubeVideoData from './youtubeScraper';
 import scrapeTweets from './twitterScrapper';
 import scrapeRedditPost from './redditScrapper';
 import getWebPageData from './webScraper';
 import { CohereClient } from 'cohere-ai';
 import { Pinecone } from '@pinecone-database/pinecone';
-import dotenv from 'dotenv'; 
-dotenv.config(); 
-
-const redisClient = createClient({
-    url : process.env.REDIS_URL || 'redis://queue:6379'
-});
+import dotenv from 'dotenv';
+dotenv.config();
 
 const embedClient = new CohereClient({
     token : process.env.EMBED_API_KEY
@@ -23,7 +18,7 @@ const pinecone = new Pinecone({
 const store = pinecone.index('secondbrain');
 
 
-interface cardContent { 
+export interface cardContent {
     tags: {
         id: number;
         title: string;
@@ -117,7 +112,7 @@ const createAndReturnEmbeddings = async ({data,type} : {data: any,type:string}) 
 
 
 
-const handleScrapeAndPostEmbeddings = async ({card,type} : {card : cardContent,type :string}) : Promise<any> => {
+export const embedContent = async ({card,type} : {card : cardContent,type :string}) : Promise<any> => {
 
     let data;
 
@@ -182,40 +177,5 @@ const handleScrapeAndPostEmbeddings = async ({card,type} : {card : cardContent,t
             status: 'failure'
         }
     }
-    
-}   
 
-
-
-
-
-
-const startWorker = async() => {
-    try{
-        console.log("worker started")
-        await redisClient.connect();
-        while(1){
-            let content;
-            try{
-                content = await redisClient.brPop('embedQueue',0); 
-                const card : cardContent = JSON.parse(content?.element!);  
-                const type = card?.type;  
-                const result  = await handleScrapeAndPostEmbeddings({card,type }) ;
-
-                if(result.status === 'failure'){
-                    throw new Error;
-                }
-            }catch(e){
-                console.error("Some error occured scraping the content or ambedding the content; pushed to error queue",e,content);
-                redisClient.lPush('errorQueue',content?.element || JSON.stringify(content));
-            }
-        }        
-
-    }catch(e){
-        console.error('Error connecting to redis client or something else');
-        console.error(e);
-    }
 }
-
-
-startWorker();

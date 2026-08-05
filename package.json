@@ -1,13 +1,11 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "main": "index.js", 
+  "main": "index.js",
   "scripts": {
     "build": "tsc -b",
-    "start": "concurrently --kill-others-on-fail  \"node ./dist/server.js\" \"node ./dist/worker/worker.js\"",
-    "start:web": "node ./dist/server.js",
-    "start:worker": "node ./dist/worker/worker.js",
-    "dev": "concurrently --kill-others-on-fail \"nodemon --watch src --exec ts-node ./src/server.ts\" \"nodemon --watch src/worker --exec ts-node ./src/worker/worker.ts\"",
+    "start": "node ./dist/server.js",
+    "dev": "nodemon --watch src --exec ts-node ./src/server.ts",
     "container:start": "npm run build && npm run start "
   },
   "keywords": [],
@@ -19,7 +17,7 @@
     "@pinecone-database/pinecone": "^6.1.1",
     "@prisma/client": "^6.2.1",
     "axios": "^1.10.0",
-    "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.3",
     "cheerio": "^1.1.0",
     "cohere-ai": "^7.17.1",
     "cookie": "^1.0.2",
@@ -31,11 +29,9 @@
     "jsdom": "^26.1.0",
     "jsonwebtoken": "^9.0.2",
     "node-cron": "^4.1.0",
-    "redis": "^5.5.6",
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@types/bcrypt": "^5.0.2",
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.17",
     "@types/dotenv": "^6.1.1",
@@ -44,7 +40,6 @@
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^24.3.0",
     "@types/xml2js": "^0.4.14",
-    "concurrently": "^9.2.0",
     "nodemon": "^3.1.10",
     "prisma": "^6.2.1",
     "ts-node": "^10.9.2",

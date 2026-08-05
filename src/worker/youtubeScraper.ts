@@ -13,7 +13,7 @@ const getYoutubeMetaData = async (videoUrl: string) => {
         const API_KEY = process.env.YOUTUBE_API_KEY;
         const videoId = extractVideoId(videoUrl);
 
-        const response = await axios.get(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${videoId}&key=${API_KEY}`)
+        const response = await axios.get(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${videoId}&key=${API_KEY}`, { timeout: 15000 })
 
         if (!response.data.items || response.data.items.length === 0) {
             throw new Error(`No video data returned for id=${videoId}`);

@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { generateHash } from "../utils/generateHash";
 import client from "../prismaClient";
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import handleError from "../utils/handleErrors";
 
 export const createCommunity = async (req: Request, res: Response) => {

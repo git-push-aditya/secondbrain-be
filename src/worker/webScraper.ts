@@ -21,7 +21,12 @@ const getWebPageData = async (url : string) => {
             'Sec-Fetch-User': '?1',
         };
 
-        const res = await axios.get(url, {headers});
+        const res = await axios.get(url, {
+            headers,
+            timeout: 15000,
+            maxContentLength: 5 * 1024 * 1024,
+            maxBodyLength: 5 * 1024 * 1024
+        });
 
         const html = res.data;
 

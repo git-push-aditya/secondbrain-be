@@ -1,7 +1,5 @@
 import cron from "node-cron";
-import { PrismaClient } from "@prisma/client";
-
-const client = new PrismaClient();
+import client from "../prismaClient";
 
 cron.schedule('0 2 * * *', async () => {
     try{

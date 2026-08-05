@@ -1,5 +1,5 @@
 import { Request, Response } from "express"; 
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { generateToken } from "../utils/jwts";
 import handleError from "../utils/handleErrors"; 
 import { setCookiesUtils } from "../utils/setCookies";

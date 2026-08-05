@@ -3,7 +3,7 @@ import axios from "axios";
 const scrapeRedditPost = async (url : string) => { 
     const cleanedApi = url.split('/?')[0] + '.json'; 
     try{
-        const {data} = await axios.get(cleanedApi);
+        const {data} = await axios.get(cleanedApi, { timeout: 15000 });
         let post; //post details
         if(data[0]?.data?.children[0]?.kind === 't3'){
             let title = data[0]?.data?.children[0]?.data?.title || '';

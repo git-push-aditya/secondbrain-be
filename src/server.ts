@@ -8,7 +8,6 @@ import verifyJwt from "./middlewares/jwstAuth";
 import { restoreMe } from "./controllers/me";
 import helmet from 'helmet';
 import dotenv from 'dotenv';
-import { createClient } from 'redis';
 import client from "./prismaClient"
 
 
@@ -20,17 +19,6 @@ process.on("SIGINT", async () => {
   await client.$disconnect();
   console.log("signing off")
   process.exit(0);
-});
-
-
-const redisClient = createClient({
-  url : process.env.REDIS_URL || 'redis://queue:6379'
-});
-redisClient.on('error', (err) => {
-  console.error('redis client error : ', err);
-})
-redisClient.on('reconnecting', () => {
-  console.warn('Reconnecting to Redis...');
 });
 
 
@@ -66,19 +54,12 @@ app.use('/user', userRoutes);
 
 app.get('/me', meZod, verifyJwt, restoreMe);
 
-const startServer = async () => {
-  try {
-    await redisClient.connect();
-    console.log('successfully connected to redis client');
-    const port = process.env.PORT || 2233;
-    app.listen(port, () => {
-      console.log(`Server started at port ${port}`);
-    });
-  } catch (e) {
-    console.error('something happened :', e);
-  }
+const startServer = () => {
+  const port = process.env.PORT || 2233;
+  app.listen(port, () => {
+    console.log(`Server started at port ${port}`);
+  });
 }
 
 startServer();
 import './jobs/cleanUnusedtags';
-export default redisClient;

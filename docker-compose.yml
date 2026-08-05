@@ -1,6 +1,6 @@
 version: "3.8"
 
-services: 
+services:
   backend:
     image: 11xenon11/secondbrain:${LATEST_IMAGE_TAG:-latest}
     build:
@@ -9,25 +9,5 @@ services:
     container_name: backend
     restart: always
     env_file: .env
-    environment:
-      REDIS_URL: redis://queue:6379
     ports:
       - "2233:2233"
-    depends_on:
-      queue: 
-        condition: service_healthy
-
-  queue:
-    image: redis:alpine
-    container_name: queue
-    restart: always 
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli ping || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-volumes: 
-  redis_data:

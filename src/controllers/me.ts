@@ -1,6 +1,7 @@
-import { Request, Response } from "express"; 
+import { Request, Response } from "express";
 import { serialize } from "cookie";
 import client from '../prismaClient';
+import { cookieOptions } from '../utils/setCookies';
 
 export const restoreMe = async (req : Request, res : Response) => { 
     const userId = req.body.userId;
@@ -17,11 +18,8 @@ export const restoreMe = async (req : Request, res : Response) => {
 
         const token = req.cookies['token'];
         res.setHeader('Set-Cookie', serialize('token', token, {// Refresh cookie to extend session
-            httpOnly: true,
-            secure: false, 
-            sameSite: 'strict',
-            maxAge: 60 * 60 * 24, 
-            path: '/'
+            ...cookieOptions,
+            maxAge: 60 * 60 * 24
         }));
         res.setHeader("Cache-Control", "no-store");
         res.status(200).json({
