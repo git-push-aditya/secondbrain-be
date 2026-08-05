@@ -84,7 +84,7 @@ This intentionally trades a small amount of durability (an in-flight background 
 Create a `.env` file in the project root (example keys below). **Do not** commit secrets.
 ```env
 NODE_ENV=production
-DATABASE_URL="postgresql://user:password@host:port/dbname?sslmode=require&sslaccept=accept_invalid_certs"
+DATABASE_URL="postgresql://user:password@host:6543/dbname?sslmode=require&sslaccept=accept_invalid_certs&pgbouncer=true"
 JWT_SECRET=your_jwt_secret
 BASE_LINK=http://localhost:2233
 YOUTUBE_API_KEY=your_youtube_key
@@ -96,7 +96,7 @@ ALLOWED_ORIGINS=https://your-frontend-domain.com
 ```
 `PORT` is injected automatically by Render/Docker at runtime — don't set it manually in `.env`.
 
-The `?sslmode=require&sslaccept=accept_invalid_certs` suffix on `DATABASE_URL` is required for Prisma to connect to Supabase's pooler — Supabase's certificate chain uses a custom root CA that Prisma won't trust by default without it. Without this suffix every database call fails.
+Use Supabase's **Transaction pooler** connection string (port `6543`), not the Session pooler (`5432`). The `sslmode=require&sslaccept=accept_invalid_certs` suffix is required for Prisma to trust Supabase's certificate chain (a custom root CA), and `pgbouncer=true` is required for Prisma to work correctly against PgBouncer's transaction-mode pooling. Without these, database calls fail or become unreliable.
 
 ---
 
