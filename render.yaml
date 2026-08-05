@@ -5,7 +5,7 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     dockerCommand: npm run start:web
-    plan: starter
+    plan: free
     autoDeploy: true
     envVars:
       - key: NODE_ENV
@@ -35,7 +35,7 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     dockerCommand: npm run start:worker
-    plan: starter
+    plan: free
     autoDeploy: true
     envVars:
       - key: NODE_ENV
