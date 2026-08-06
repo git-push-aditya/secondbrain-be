@@ -11,6 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
@@ -22,20 +23,33 @@ const jwstAuth_1 = __importDefault(require("./middlewares/jwstAuth"));
 const me_1 = require("./controllers/me");
 const helmet_1 = __importDefault(require("helmet"));
 const dotenv_1 = __importDefault(require("dotenv"));
-const redis_1 = require("redis");
-//note when you delete a content also delete its embedding
+const prismaClient_1 = __importDefault(require("./prismaClient"));
 dotenv_1.default.config();
-const redisClient = (0, redis_1.createClient)();
-redisClient.on('error', (err) => {
-    console.error('redis client error : ', err);
-});
-redisClient.on('reconnecting', () => {
-    console.warn('Reconnecting to Redis...');
-});
+process.on("SIGINT", () => __awaiter(void 0, void 0, void 0, function* () {
+    yield prismaClient_1.default.$disconnect();
+    console.log("signing off");
+    process.exit(0);
+}));
 const app = (0, express_1.default)();
+const allowedOrigins = [
+    'http://localhost:5173',
+    'https://secondbrain.notaditya.dev',
+    ...(((_a = process.env.ALLOWED_ORIGINS) === null || _a === void 0 ? void 0 : _a.split(',').map(origin => origin.trim()).filter(Boolean)) || [])
+];
 app.use((0, cors_1.default)({
-    origin: "http://localhost:5173",
+    origin: (origin, callback) => {
+        if (!origin) {
+            return callback(null, true);
+        }
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+        else {
+            return callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
+    maxAge: 86400,
 }));
 app.use((0, helmet_1.default)());
 app.use((0, cookie_parser_1.default)());
@@ -43,18 +57,11 @@ app.use(express_1.default.json());
 app.use('/auth', authRoutes_1.default);
 app.use('/user', userRoutes_1.default);
 app.get('/me', zodMiddleware_1.meZod, jwstAuth_1.default, me_1.restoreMe);
-const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        yield redisClient.connect();
-        console.log('successfully connected to redis client');
-        app.listen(2233, () => {
-            console.log("Server started at port 2233");
-        });
-    }
-    catch (e) {
-        console.error('something happened :', e);
-    }
-});
+const startServer = () => {
+    const port = process.env.PORT || 2233;
+    app.listen(port, () => {
+        console.log(`Server started at port ${port}`);
+    });
+};
 startServer();
 require("./jobs/cleanUnusedtags");
-exports.default = redisClient;

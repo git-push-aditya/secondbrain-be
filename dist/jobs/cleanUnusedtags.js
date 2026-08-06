@@ -13,11 +13,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const node_cron_1 = __importDefault(require("node-cron"));
-const client_1 = require("@prisma/client");
-const client = new client_1.PrismaClient();
+const prismaClient_1 = __importDefault(require("../prismaClient"));
 node_cron_1.default.schedule('0 2 * * *', () => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const result = yield client.tags.deleteMany({
+        const result = yield prismaClient_1.default.tags.deleteMany({
             where: {
                 content: {
                     none: {}

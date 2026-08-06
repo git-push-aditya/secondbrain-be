@@ -17,7 +17,7 @@ const handleErrors_1 = __importDefault(require("../utils/handleErrors"));
 const generateHash_1 = require("../utils/generateHash");
 const prismaClient_1 = __importDefault(require("../prismaClient"));
 const pinecone_1 = require("@pinecone-database/pinecone");
-const server_1 = __importDefault(require("../server"));
+const worker_1 = require("../worker/worker");
 const pinecone = new pinecone_1.Pinecone({
     apiKey: process.env.PINECONE_VDB_API_KEY || ''
 });
@@ -25,25 +25,27 @@ const store = pinecone.index('secondbrain');
 const addContent = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { title, hyperlink, note, type, existingTags, newTags, userId, collectionId } = req.body;
-        const ifExist = yield prismaClient_1.default.contentCollection.findFirst({
-            where: {
-                collection: {
-                    is: {
-                        id: collectionId,
-                        userId: userId
-                    }
-                },
-                content: {
-                    is: {
-                        hyperlink
-                    }
-                }
-            },
+        //single round trip: verifies the collection belongs to this user AND checks for a duplicate hyperlink in it
+        const collectionCheck = yield prismaClient_1.default.collection.findFirst({
+            where: { id: collectionId, userId },
             select: {
-                contentId: true
+                content: {
+                    where: { content: { is: { hyperlink } } },
+                    select: { contentId: true },
+                    take: 1
+                }
             }
         });
-        if (ifExist && ifExist.contentId) {
+        if (!collectionCheck) {
+            res.status(403).json({
+                status: "failure",
+                payload: {
+                    message: "unAutherized access"
+                }
+            });
+            return;
+        }
+        if (collectionCheck.content.length !== 0) {
             console.log('user is trying to enter same link in the same collection multiple times');
             res.status(400).json({
                 status: "failure",
@@ -53,71 +55,35 @@ const addContent = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             });
             return;
         }
-        //new tags added
-        let filteredNewTags = newTags.filter((tag) => !existingTags.includes(tag));
-        //old tags fetched
-        let oldTags = [];
-        if (existingTags.length != 0) {
-            const oldTagsIdList = yield prismaClient_1.default.tags.findMany({
-                where: {
-                    title: {
-                        in: existingTags
-                    }
-                },
-                select: {
-                    title: true,
-                    id: true
-                }
-            });
-            oldTags = oldTagsIdList;
-        }
-        filteredNewTags = filteredNewTags
-            .filter((tag) => !oldTags.some((oldTag) => oldTag.title === tag));
-        let newtag = [];
-        const { newContent, tagsList } = yield prismaClient_1.default.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
-            if (filteredNewTags.length != 0) {
-                const newTagsUpload = yield tx.tags.createManyAndReturn({
-                    data: filteredNewTags.map((tag) => ({
-                        title: tag
-                    })),
-                    select: {
-                        id: true,
-                        title: true
-                    }
-                });
-                newtag = newTagsUpload;
-            }
-            //new content created
-            const newContent = yield tx.content.create({
-                data: { title, hyperlink, note, type, userId },
-                select: { id: true, title: true, hyperlink: true, note: true, createdAt: true, type: true },
-            });
-            //entry made in contetn collection table to map contetn to particular collection
-            yield tx.contentCollection.create({
-                data: {
-                    collectionId: collectionId,
-                    contentId: newContent.id
-                }
-            });
-            const tagsList = Array.from(new Set([...newtag, ...oldTags]));
-            if (tagsList.length != 0) {
-                yield tx.contentTags.createMany({
-                    data: tagsList.map((tag) => ({
-                        contentId: newContent.id,
-                        tagId: tag.id
+        //tags deduped and connected-or-created in the same write as the content, no separate lookup/insert round trips
+        const allTags = Array.from(new Set([...existingTags, ...newTags]));
+        const newContent = yield prismaClient_1.default.content.create({
+            data: {
+                title, hyperlink, note, type, userId,
+                collection: { create: { collectionId } },
+                tags: allTags.length !== 0 ? {
+                    create: allTags.map((tagTitle) => ({
+                        tag: { connectOrCreate: { where: { title: tagTitle }, create: { title: tagTitle } } }
                     }))
-                });
+                } : undefined
+            },
+            select: {
+                id: true, title: true, hyperlink: true, note: true, createdAt: true, type: true,
+                tags: { select: { tag: { select: { id: true, title: true } } } }
             }
-            return { newContent, tagsList };
-        }));
+        });
+        const tagsList = newContent.tags.map((t) => t.tag);
         const enrichedContent = Object.assign(Object.assign({}, newContent), { tags: tagsList, userId });
-        yield server_1.default.lPush('embedQueue', JSON.stringify(enrichedContent));
         res.status(200).json({
             status: "success",
             payload: {
                 message: "Content created successfully",
                 content: enrichedContent
             }
+        });
+        //fire-and-forget: scrape + embed happens after the response is sent, no queue/worker needed
+        (0, worker_1.embedContent)({ card: enrichedContent, type: enrichedContent.type }).catch((e) => {
+            console.error('Error embedding content in background', e);
         });
     }
     catch (e) {
@@ -134,7 +100,6 @@ const deleteContent = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         });
         console.log(deletedPost);
         yield store._deleteOne(`${contentId}`);
-        console.log("Vector deleted with id", contentId);
         res.status(200).json({
             status: "success",
             payload: {
@@ -158,56 +123,58 @@ const fetchContent = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     const page = parseInt(req.query.page) || 1;
     const skip = (page - 1) * limit;
     try {
-        const count = yield prismaClient_1.default.contentCollection.count({
-            where: {
-                collection: {
-                    is: {
-                        userId
-                    }
+        const [count, content] = yield Promise.all([
+            prismaClient_1.default.contentCollection.count({
+                where: {
+                    collection: {
+                        is: {
+                            userId
+                        }
+                    },
+                    collectionId: collectionId
+                }
+            }),
+            prismaClient_1.default.contentCollection.findMany({
+                where: {
+                    collection: {
+                        is: {
+                            userId
+                        }
+                    },
+                    collectionId: collectionId,
                 },
-                collectionId: collectionId
-            }
-        });
-        const content = yield prismaClient_1.default.contentCollection.findMany({
-            where: {
-                collection: {
-                    is: {
-                        userId
-                    }
-                },
-                collectionId: collectionId,
-            },
-            skip,
-            take: limit,
-            select: {
-                collectionId: true,
-                content: {
-                    select: {
-                        id: true,
-                        title: true,
-                        hyperlink: true,
-                        note: true,
-                        createdAt: true,
-                        type: true,
-                        tags: {
-                            select: {
-                                tag: {
-                                    select: {
-                                        id: true,
-                                        title: true
+                skip,
+                take: limit,
+                select: {
+                    collectionId: true,
+                    content: {
+                        select: {
+                            id: true,
+                            title: true,
+                            hyperlink: true,
+                            note: true,
+                            createdAt: true,
+                            type: true,
+                            tags: {
+                                select: {
+                                    tag: {
+                                        select: {
+                                            id: true,
+                                            title: true
+                                        }
                                     }
                                 }
                             }
                         }
                     }
+                },
+                orderBy: {
+                    content: {
+                        createdAt: "desc"
+                    }
                 }
-            },
-            orderBy: {
-                content: {
-                    createdAt: "desc"
-                }
-            }
-        });
+            })
+        ]);
         res.status(200).json({
             status: "success",
             payload: {
@@ -239,21 +206,24 @@ const generateSharableLink = (req, res) => __awaiter(void 0, void 0, void 0, fun
         });
         if (check === null) {
             const hash = (0, generateHash_1.generateHash)();
-            yield prismaClient_1.default.link.create({
-                data: {
-                    userId: userId,
-                    hash: hash,
-                    collectionId: collectionId
-                }
-            });
-            yield prismaClient_1.default.collection.update({
-                where: {
-                    id: collectionId
-                }, data: {
-                    shared: true
-                }
-            });
-            const generatedLink = `http://localhost:5173/sharedbrain/?id=${hash}`;
+            yield Promise.all([
+                prismaClient_1.default.link.create({
+                    data: {
+                        userId: userId,
+                        hash: hash,
+                        collectionId: collectionId
+                    }
+                }),
+                prismaClient_1.default.collection.update({
+                    where: {
+                        id: collectionId
+                    },
+                    data: {
+                        shared: true
+                    }
+                })
+            ]);
+            const generatedLink = `https://secondbrain.notaditya.dev/sharedbrain/?id=${hash}`;
             res.status(200).json({
                 status: "success",
                 payload: {
@@ -263,7 +233,7 @@ const generateSharableLink = (req, res) => __awaiter(void 0, void 0, void 0, fun
             });
         }
         else {
-            const generatedLink = `http://localhost:5173/sharedbrain/?id=${check === null || check === void 0 ? void 0 : check.hash}`;
+            const generatedLink = `https://secondbrain.notaditya.dev/sharedbrain/?id=${check === null || check === void 0 ? void 0 : check.hash}`;
             res.status(200).json({
                 status: "success",
                 payload: {
@@ -353,47 +323,49 @@ const pagedSharedConetnt = (req, res) => __awaiter(void 0, void 0, void 0, funct
         return;
     }
     try { //more field in the return which
-        const count = yield prismaClient_1.default.contentCollection.count({
-            where: {
-                collectionId: collectionId.collectionId
-            }
-        });
-        const paginatedSharedData = yield prismaClient_1.default.contentCollection.findMany({
-            where: {
-                collectionId: collectionId.collectionId,
-                collection: {
-                    is: {
-                        shared: true
-                    }
+        const [count, paginatedSharedData] = yield Promise.all([
+            prismaClient_1.default.contentCollection.count({
+                where: {
+                    collectionId: collectionId.collectionId
                 }
-            },
-            skip,
-            take: parseInt(limit),
-            orderBy: [{ content: { createdAt: "desc" } }],
-            select: {
-                collectionId: true,
-                content: {
-                    select: {
-                        id: true,
-                        title: true,
-                        hyperlink: true,
-                        createdAt: true,
-                        note: true,
-                        type: true,
-                        tags: {
-                            select: {
-                                tag: {
-                                    select: {
-                                        id: true,
-                                        title: true
+            }),
+            prismaClient_1.default.contentCollection.findMany({
+                where: {
+                    collectionId: collectionId.collectionId,
+                    collection: {
+                        is: {
+                            shared: true
+                        }
+                    }
+                },
+                skip,
+                take: parseInt(limit),
+                orderBy: [{ content: { createdAt: "desc" } }],
+                select: {
+                    collectionId: true,
+                    content: {
+                        select: {
+                            id: true,
+                            title: true,
+                            hyperlink: true,
+                            createdAt: true,
+                            note: true,
+                            type: true,
+                            tags: {
+                                select: {
+                                    tag: {
+                                        select: {
+                                            id: true,
+                                            title: true
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
-            }
-        });
+            })
+        ]);
         res.status(200).json({
             status: "success",
             payload: {
@@ -545,19 +517,22 @@ exports.fetchTaggedContent = fetchTaggedContent;
 const deleteSharedLink = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { userId, collectionId } = req.body;
     try {
-        yield prismaClient_1.default.link.delete({
-            where: {
-                userId: userId,
-                collectionId: collectionId
-            }
-        });
-        yield prismaClient_1.default.collection.update({
-            where: {
-                id: collectionId
-            }, data: {
-                shared: false
-            }
-        });
+        yield prismaClient_1.default.$transaction([
+            prismaClient_1.default.link.delete({
+                where: {
+                    userId: userId,
+                    collectionId: collectionId
+                }
+            }),
+            prismaClient_1.default.collection.update({
+                where: {
+                    id: collectionId
+                },
+                data: {
+                    shared: false
+                }
+            })
+        ]);
         res.status(200).json({
             status: "success",
             payload: {
@@ -606,46 +581,49 @@ const newCollection = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     }
 });
 exports.newCollection = newCollection;
-/// in /me i send a list of user collection and its id and also send a list of existing tags, in frontend before api call we seprate the list from existing and new
-//alson on frontend make seure before api call no two collections have same name
 const getCommCollList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { userId } = req.body;
     try {
-        const collectionList = yield prismaClient_1.default.collection.findMany({
-            where: {
-                userId: userId
-            }, select: {
-                id: true,
-                name: true,
-                shared: true
-            }
-        });
-        const tagsList = yield prismaClient_1.default.tags.findMany({
-            select: {
-                title: true
-            }
-        });
-        const communitylist = yield prismaClient_1.default.user.findMany({
-            where: {
-                id: userId
-            }, select: {
-                founded: {
-                    select: {
-                        name: true,
-                        id: true
-                    }
-                }, memberOf: {
-                    select: {
-                        community: {
-                            select: {
-                                name: true,
-                                id: true
+        const [collectionList, tagsList, communitylist] = yield Promise.all([
+            prismaClient_1.default.collection.findMany({
+                where: {
+                    userId: userId
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    shared: true
+                }
+            }),
+            prismaClient_1.default.tags.findMany({
+                select: {
+                    title: true
+                }
+            }),
+            prismaClient_1.default.user.findMany({
+                where: {
+                    id: userId
+                },
+                select: {
+                    founded: {
+                        select: {
+                            name: true,
+                            id: true
+                        }
+                    },
+                    memberOf: {
+                        select: {
+                            community: {
+                                select: {
+                                    name: true,
+                                    id: true
+                                }
                             }
                         }
                     }
                 }
-            }
-        });
+            })
+        ]);
         const list = communitylist[0];
         const founded = (list.founded || []).map(community => ({
             id: community.id,
@@ -698,28 +676,33 @@ const deleteCollection = (req, res) => __awaiter(void 0, void 0, void 0, functio
         return;
     }
     try { ////made changes her
-        const contentToDelete = yield prismaClient_1.default.content.findMany({
-            where: {
-                collection: {
-                    is: {
-                        collectionId: collectionId,
+        const deletedDashboard = yield prismaClient_1.default.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
+            const contentToDelete = yield tx.content.findMany({
+                where: {
+                    collection: {
+                        is: {
+                            collectionId: collectionId,
+                        },
                     },
                 },
-            },
-            select: { id: true }
-        });
-        yield prismaClient_1.default.content.deleteMany({
-            where: {
-                id: { in: contentToDelete.map(c => c.id) }
+                select: { id: true }
+            });
+            if (contentToDelete.length > 0) {
+                yield tx.content.deleteMany({
+                    where: {
+                        id: { in: contentToDelete.map(c => c.id) }
+                    }
+                });
             }
-        });
-        const deletedDashboard = yield prismaClient_1.default.collection.delete({
-            where: {
-                id: collectionId
-            }, select: {
-                id: true
-            }
-        });
+            return tx.collection.delete({
+                where: {
+                    id: collectionId
+                },
+                select: {
+                    id: true
+                }
+            });
+        }));
         res.status(200).json({
             status: "success",
             payload: {

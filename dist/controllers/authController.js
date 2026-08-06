@@ -13,7 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.signIn = exports.signUp = void 0;
-const bcrypt_1 = __importDefault(require("bcrypt"));
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jwts_1 = require("../utils/jwts");
 const handleErrors_1 = __importDefault(require("../utils/handleErrors"));
 const setCookies_1 = require("../utils/setCookies");
@@ -27,7 +27,7 @@ const signUp = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             }
         });
         if (!ifExist) {
-            const hashedPassword = yield bcrypt_1.default.hash(password.trim(), 10);
+            const hashedPassword = yield bcryptjs_1.default.hash(password.trim(), 10);
             const newUser = yield prismaClient_1.default.user.create({
                 data: {
                     userName: userName.trim(),
@@ -92,7 +92,7 @@ const signIn = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             }
         });
         if (checkUser) {
-            const verify = yield bcrypt_1.default.compare(password.trim(), checkUser.password);
+            const verify = yield bcryptjs_1.default.compare(password.trim(), checkUser.password);
             if (verify) {
                 const token = (0, jwts_1.generateToken)({ userId: checkUser.id });
                 (0, setCookies_1.setCookiesUtils)(res, token, rememberMe);

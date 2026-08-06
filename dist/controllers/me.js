@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.restoreMe = void 0;
 const cookie_1 = require("cookie");
 const prismaClient_1 = __importDefault(require("../prismaClient"));
+const setCookies_1 = require("../utils/setCookies");
 const restoreMe = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const userId = req.body.userId;
     const userDetails = yield prismaClient_1.default.user.findUnique({
@@ -28,13 +29,7 @@ const restoreMe = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     });
     if (userDetails) {
         const token = req.cookies['token'];
-        res.setHeader('Set-Cookie', (0, cookie_1.serialize)('token', token, {
-            httpOnly: true,
-            secure: false,
-            sameSite: 'strict',
-            maxAge: 60 * 60 * 24,
-            path: '/'
-        }));
+        res.setHeader('Set-Cookie', (0, cookie_1.serialize)('token', token, Object.assign(Object.assign({}, setCookies_1.cookieOptions), { maxAge: 60 * 60 * 24 })));
         res.setHeader("Cache-Control", "no-store");
         res.status(200).json({
             status: "success",

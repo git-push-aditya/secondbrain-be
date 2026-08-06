@@ -11,7 +11,7 @@ const checkContentCollection_1 = require("../middlewares/checkContentCollection"
 const communityController_1 = require("../controllers/communityController");
 const chatbot_1 = require("../controllers/chatbot");
 const router = (0, express_1.Router)();
-router.post('/addcontent', zodMiddleware_1.zodAddContent, jwstAuth_1.default, checkContentCollection_1.checkContentCollectionReference, userController_1.addContent);
+router.post('/addcontent', zodMiddleware_1.zodAddContent, jwstAuth_1.default, userController_1.addContent);
 router.post('/deletecontent', zodMiddleware_1.zodDeleteContent, jwstAuth_1.default, userController_1.deleteContent);
 router.get('/fetchcontents', zodMiddleware_1.zodFetchContent, jwstAuth_1.default, checkContentCollection_1.checkContentCollectionReference, userController_1.fetchContent);
 router.patch('/generatelink', zodMiddleware_1.meZod, jwstAuth_1.default, checkContentCollection_1.checkContentCollectionReference, userController_1.generateSharableLink);

@@ -8,6 +8,15 @@ const handleErrors_1 = __importDefault(require("../utils/handleErrors"));
 const secret = process.env.JWT_SECRET;
 const verifyJwt = (req, res, next) => {
     const token = req.cookies['token'];
+    if (!token) {
+        res.status(401).json({
+            status: "failure",
+            payload: {
+                message: "Not logged in/ session cookie missing"
+            }
+        });
+        return;
+    }
     try {
         const verify = jsonwebtoken_1.default.verify(token, secret);
         if (verify.userId) {
@@ -15,8 +24,11 @@ const verifyJwt = (req, res, next) => {
             next();
         }
         else {
-            res.status(400).json({
-                message: "Invalid jwt token"
+            res.status(401).json({
+                status: "failure",
+                payload: {
+                    message: "Malformed session token/ Re-login"
+                }
             });
             return;
         }
