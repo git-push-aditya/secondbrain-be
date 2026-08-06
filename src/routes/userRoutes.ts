@@ -8,7 +8,7 @@ import { chatbot } from '../controllers/chatbot';
 
 const router = Router();      
 
-router.post('/addcontent', zodAddContent,verifyJwt, checkContentCollectionReference,addContent);
+router.post('/addcontent', zodAddContent,verifyJwt,addContent);
 
 router.post('/deletecontent', zodDeleteContent, verifyJwt,deleteContent );
 

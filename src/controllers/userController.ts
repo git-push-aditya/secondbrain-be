@@ -56,26 +56,29 @@ export const addContent = async (req: Request<{}, {}, AddContentType>, res: Resp
     try {
         const { title, hyperlink, note, type, existingTags, newTags, userId, collectionId } = req.body;
 
-        const ifExist = await client.contentCollection.findFirst({
-            where: {
-                collection: {
-                    is: {
-                        id: collectionId,
-                        userId: userId
-                    }
-                },
-                content: {
-                    is: {
-                        hyperlink
-                    }
-                }
-            },
+        //single round trip: verifies the collection belongs to this user AND checks for a duplicate hyperlink in it
+        const collectionCheck = await client.collection.findFirst({
+            where: { id: collectionId, userId },
             select: {
-                contentId: true
+                content: {
+                    where: { content: { is: { hyperlink } } },
+                    select: { contentId: true },
+                    take: 1
+                }
             }
-        })
+        });
 
-        if (ifExist && ifExist.contentId) {
+        if (!collectionCheck) {
+            res.status(403).json({
+                status: "failure",
+                payload: {
+                    message: "unAutherized access"
+                }
+            })
+            return;
+        }
+
+        if (collectionCheck.content.length !== 0) {
             console.log('user is trying to enter same link in the same collection multiple times');
             res.status(400).json({
                 status: "failure",
@@ -86,80 +89,26 @@ export const addContent = async (req: Request<{}, {}, AddContentType>, res: Resp
             return;
         }
 
+        //tags deduped and connected-or-created in the same write as the content, no separate lookup/insert round trips
+        const allTags = Array.from(new Set([...existingTags, ...newTags]));
 
-
-        //new tags added
-        let filteredNewTags: string[] = newTags.filter((tag) => !existingTags.includes(tag));
-
-        //old tags fetched
-        let oldTags: { id: number, title: string }[] = [];
-
-        if (existingTags.length != 0) {
-            const oldTagsIdList = await client.tags.findMany({
-                where: {
-                    title: {
-                        in: existingTags
-                    }
-                },
-                select: {
-                    title: true,
-                    id: true
-                }
-            })
-
-            oldTags = oldTagsIdList;
-        }
-
-        filteredNewTags = filteredNewTags
-            .filter((tag) => !oldTags.some((oldTag) => oldTag.title === tag));
-
-        let newtag: { id: number, title: string }[] = [];
-
-
-        const { newContent, tagsList } = await client.$transaction(async (tx) => {
-
-            if (filteredNewTags.length != 0) {
-                const newTagsUpload = await tx.tags.createManyAndReturn({
-                    data: filteredNewTags.map((tag) => ({
-                        title: tag
-                    })),
-                    select: {
-                        id: true,
-                        title: true
-                    }
-                });
-                newtag = newTagsUpload;
-            }
-
-            //new content created
-            const newContent = await tx.content.create({
-                data: { title, hyperlink, note, type, userId },
-                select: { id: true, title: true, hyperlink: true, note: true, createdAt: true, type: true },
-            });
-
-            //entry made in contetn collection table to map contetn to particular collection
-            await tx.contentCollection.create({
-                data: {
-                    collectionId: collectionId,
-                    contentId: newContent.id
-                }
-            })
-
-            const tagsList: { id: number, title: string }[] = Array.from(new Set([...newtag, ...oldTags]));
-
-            if (tagsList.length != 0) {
-                await tx.contentTags.createMany({
-                    data: tagsList.map((tag) => ({
-                        contentId: newContent.id,
-                        tagId: tag.id
+        const newContent = await client.content.create({
+            data: {
+                title, hyperlink, note, type, userId,
+                collection: { create: { collectionId } },
+                tags: allTags.length !== 0 ? {
+                    create: allTags.map((tagTitle) => ({
+                        tag: { connectOrCreate: { where: { title: tagTitle }, create: { title: tagTitle } } }
                     }))
-                })
+                } : undefined
+            },
+            select: {
+                id: true, title: true, hyperlink: true, note: true, createdAt: true, type: true,
+                tags: { select: { tag: { select: { id: true, title: true } } } }
             }
+        });
 
-            return { newContent, tagsList };
-
-        })
-
+        const tagsList = newContent.tags.map((t) => t.tag);
         const enrichedContent = { ...newContent, tags: tagsList, userId };
 
         res.status(200).json({

@@ -32,16 +32,17 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin) { 
+    if (!origin) {
       return callback(null, true);
     }
-    if (allowedOrigins.includes(origin)) { 
+    if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     } else {
       return callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
+  maxAge: 86400,
 }));
 
 app.use(helmet());
