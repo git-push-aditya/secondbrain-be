@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { Prisma } from '@prisma/client';
 import handleError from '../utils/handleErrors';
 import { generateHash } from '../utils/generateHash';
 import client from '../prismaClient';
@@ -51,59 +52,43 @@ interface returningContent {
 
 
 
-class ForbiddenCollectionError extends Error { }
-class DuplicateContentError extends Error { }
-
 export const addContent = async (req: Request<{}, {}, AddContentType>, res: Response) => {
 
     try {
         const { title, hyperlink, note, type, existingTags, newTags, userId, collectionId } = req.body;
         const allTags = Array.from(new Set([...existingTags, ...newTags]));
 
-        const newContent = await client.$transaction(async (tx) => {
-            //advisory lock keyed on (collectionId, hyperlink), released at transaction end: serializes concurrent
-            //adds of the same link to the same collection so two racing requests can't both pass the duplicate
-            //check below before either has committed its insert (was reproducible: 5 concurrent identical
-            //requests all succeeded and created 5 duplicate rows)
-            await tx.$executeRaw`SELECT pg_advisory_xact_lock(${collectionId}::int, hashtext(${hyperlink}))`;
+        const collectionCheck = await client.collection.findFirst({
+            where: { id: collectionId, userId },
+            select: { id: true }
+        });
 
-            //verifies the collection belongs to this user AND checks for a duplicate hyperlink in it, in one query
-            const collectionCheck = await tx.collection.findFirst({
-                where: { id: collectionId, userId },
-                select: {
-                    content: {
-                        where: { content: { is: { hyperlink } } },
-                        select: { contentId: true },
-                        take: 1
-                    }
+        if (!collectionCheck) {
+            res.status(403).json({
+                status: "failure",
+                payload: {
+                    message: "unAutherized access"
                 }
-            });
+            })
+            return;
+        }
 
-            if (!collectionCheck) {
-                throw new ForbiddenCollectionError();
+        //duplicate-in-collection is enforced by content's (collectionId, hyperlink) unique index - race-free
+        //without needing our own lock, since Postgres rejects the second concurrent insert outright (P2002 below)
+        const newContent = await client.content.create({
+            data: {
+                title, hyperlink, note, type, userId, collectionId,
+                tags: allTags.length !== 0 ? {
+                    create: allTags.map((tagTitle) => ({
+                        tag: { connectOrCreate: { where: { title: tagTitle }, create: { title: tagTitle } } }
+                    }))
+                } : undefined
+            },
+            select: {
+                id: true, title: true, hyperlink: true, note: true, createdAt: true, type: true,
+                tags: { select: { tag: { select: { id: true, title: true } } } }
             }
-
-            if (collectionCheck.content.length !== 0) {
-                throw new DuplicateContentError();
-            }
-
-            //tags deduped and connected-or-created in the same write as the content, no separate lookup/insert round trips
-            return tx.content.create({
-                data: {
-                    title, hyperlink, note, type, userId,
-                    collection: { create: { collectionId } },
-                    tags: allTags.length !== 0 ? {
-                        create: allTags.map((tagTitle) => ({
-                            tag: { connectOrCreate: { where: { title: tagTitle }, create: { title: tagTitle } } }
-                        }))
-                    } : undefined
-                },
-                select: {
-                    id: true, title: true, hyperlink: true, note: true, createdAt: true, type: true,
-                    tags: { select: { tag: { select: { id: true, title: true } } } }
-                }
-            });
-        }, { timeout: 15000 });
+        });
 
         const tagsList = newContent.tags.map((t) => t.tag);
         const enrichedContent = { ...newContent, tags: tagsList, userId };
@@ -122,17 +107,7 @@ export const addContent = async (req: Request<{}, {}, AddContentType>, res: Resp
         });
 
     } catch (e) {
-        if (e instanceof ForbiddenCollectionError) {
-            res.status(403).json({
-                status: "failure",
-                payload: {
-                    message: "unAutherized access"
-                }
-            })
-            return;
-        }
-
-        if (e instanceof DuplicateContentError) {
+        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
             console.log('user is trying to enter same link in the same collection multiple times');
             res.status(400).json({
                 status: "failure",
@@ -193,62 +168,48 @@ export const fetchContent = async (req: Request<{}, {}, fetchUserId>, res: Respo
 
     try {
 
-        const [count, content] = await Promise.all([
-            client.contentCollection.count({
+        const [count, contentRows] = await Promise.all([
+            client.content.count({
                 where: {
-                    collection: {
-                        is: {
-                            userId
-                        }
-                    },
-                    collectionId: collectionId
+                    collectionId,
+                    collection: { userId }
                 }
             }),
 
-            client.contentCollection.findMany({
+            client.content.findMany({
                 where: {
-                    collection: {
-                        is: {
-                            userId
-                        }
-                    },
-                    collectionId: collectionId,
+                    collectionId,
+                    collection: { userId }
                 },
                 skip,
                 take: limit,
                 select: {
-                    collectionId: true,
-                    content: {
+                    id: true,
+                    title: true,
+                    hyperlink: true,
+                    note: true,
+                    createdAt: true,
+                    type: true,
+                    tags: {
                         select: {
-                            id: true,
-                            title: true,
-                            hyperlink: true,
-                            note: true,
-                            createdAt: true,
-                            type: true,
-                            tags: {
+                            tag: {
                                 select: {
-                                    tag: {
-                                        select: {
-                                            id: true,
-                                            title: true
-                                        }
-                                    }
+                                    id: true,
+                                    title: true
                                 }
                             }
                         }
                     }
                 },
                 orderBy: {
-                    content: {
-                        createdAt: "desc"
-                    }
+                    createdAt: "desc"
                 }
             })
         ]);
 
-
-
+        //shape kept identical to the old contentCollection-joined response ({collectionId, content} per row)
+        //so the frontend doesn't need to change
+        const content = contentRows.map((row) => ({ collectionId, content: row }));
 
         res.status(200).json({
             status: "success",
@@ -418,43 +379,34 @@ export const pagedSharedConetnt = async (req: Request, res: Response) => {
         return;
     }
     try {  //more field in the return which
-        const [count, paginatedSharedData] = await Promise.all([
-            client.contentCollection.count({
+        const [count, contentRows] = await Promise.all([
+            client.content.count({
                 where: {
                     collectionId: collectionId.collectionId
                 }
             }),
 
-            client.contentCollection.findMany({
+            client.content.findMany({
                 where: {
                     collectionId: collectionId.collectionId,
-                    collection: {
-                        is: {
-                            shared: true
-                        }
-                    }
+                    collection: { shared: true }
                 },
                 skip,
                 take: parseInt(limit),
-                orderBy: [{ content: { createdAt: "desc" } }],
+                orderBy: { createdAt: "desc" },
                 select: {
-                    collectionId: true,
-                    content: {
+                    id: true,
+                    title: true,
+                    hyperlink: true,
+                    createdAt: true,
+                    note: true,
+                    type: true,
+                    tags: {
                         select: {
-                            id: true,
-                            title: true,
-                            hyperlink: true,
-                            createdAt: true,
-                            note: true,
-                            type: true,
-                            tags: {
+                            tag: {
                                 select: {
-                                    tag: {
-                                        select: {
-                                            id: true,
-                                            title: true
-                                        }
-                                    }
+                                    id: true,
+                                    title: true
                                 }
                             }
                         }
@@ -462,6 +414,9 @@ export const pagedSharedConetnt = async (req: Request, res: Response) => {
                 }
             })
         ]);
+
+        //shape kept identical to the old contentCollection-joined response ({collectionId, content} per row)
+        const paginatedSharedData = contentRows.map((row) => ({ collectionId: collectionId.collectionId, content: row }));
 
         res.status(200).json({
             status: "success",
@@ -805,35 +760,16 @@ export const deleteCollection = async (req: Request, res: Response) => {
         })
         return;
     }
-    try {////made changes her
-        const deletedDashboard = await client.$transaction(async (tx) => {
-            const contentToDelete = await tx.content.findMany({
-                where: {
-                    collection: {
-                        is: {
-                            collectionId: collectionId,
-                        },
-                    },
-                },
-                select: { id: true }
-            });
-
-            if (contentToDelete.length > 0) {
-                await tx.content.deleteMany({
-                    where: {
-                        id: { in: contentToDelete.map(c => c.id) }
-                    }
-                });
+    try {
+        //content.collectionId has onDelete: Cascade, so deleting the collection deletes its content
+        //in the same statement - no need to find and delete content separately first
+        const deletedDashboard = await client.collection.delete({
+            where: {
+                id: collectionId
+            },
+            select: {
+                id: true
             }
-
-            return tx.collection.delete({
-                where: {
-                    id: collectionId
-                },
-                select: {
-                    id: true
-                }
-            });
         });
 
 
