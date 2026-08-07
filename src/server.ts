@@ -47,6 +47,11 @@ app.use(cors({
 
 app.use(helmet());
 
+//no auth/DB work here on purpose - the frontend pings this on load to wake a sleeping Render dyno before the user reaches an actual request
+app.get('/health', (_req, res) => {
+  res.status(200).send('ok');
+});
+
 app.use(cookieParser());
 app.use(express.json());
 

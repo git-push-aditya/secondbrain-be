@@ -52,6 +52,10 @@ app.use((0, cors_1.default)({
     maxAge: 86400,
 }));
 app.use((0, helmet_1.default)());
+//no auth/DB work here on purpose - the frontend pings this on load to wake a sleeping Render dyno before the user reaches an actual request
+app.get('/health', (_req, res) => {
+    res.status(200).send('ok');
+});
 app.use((0, cookie_parser_1.default)());
 app.use(express_1.default.json());
 app.use('/auth', authRoutes_1.default);

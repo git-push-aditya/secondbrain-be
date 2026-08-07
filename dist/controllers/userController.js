@@ -22,56 +22,54 @@ const pinecone = new pinecone_1.Pinecone({
     apiKey: process.env.PINECONE_VDB_API_KEY || ''
 });
 const store = pinecone.index('secondbrain');
+class ForbiddenCollectionError extends Error {
+}
+class DuplicateContentError extends Error {
+}
 const addContent = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { title, hyperlink, note, type, existingTags, newTags, userId, collectionId } = req.body;
-        //single round trip: verifies the collection belongs to this user AND checks for a duplicate hyperlink in it
-        const collectionCheck = yield prismaClient_1.default.collection.findFirst({
-            where: { id: collectionId, userId },
-            select: {
-                content: {
-                    where: { content: { is: { hyperlink } } },
-                    select: { contentId: true },
-                    take: 1
-                }
-            }
-        });
-        if (!collectionCheck) {
-            res.status(403).json({
-                status: "failure",
-                payload: {
-                    message: "unAutherized access"
-                }
-            });
-            return;
-        }
-        if (collectionCheck.content.length !== 0) {
-            console.log('user is trying to enter same link in the same collection multiple times');
-            res.status(400).json({
-                status: "failure",
-                payload: {
-                    message: "Duplicate entry by user"
-                }
-            });
-            return;
-        }
-        //tags deduped and connected-or-created in the same write as the content, no separate lookup/insert round trips
         const allTags = Array.from(new Set([...existingTags, ...newTags]));
-        const newContent = yield prismaClient_1.default.content.create({
-            data: {
-                title, hyperlink, note, type, userId,
-                collection: { create: { collectionId } },
-                tags: allTags.length !== 0 ? {
-                    create: allTags.map((tagTitle) => ({
-                        tag: { connectOrCreate: { where: { title: tagTitle }, create: { title: tagTitle } } }
-                    }))
-                } : undefined
-            },
-            select: {
-                id: true, title: true, hyperlink: true, note: true, createdAt: true, type: true,
-                tags: { select: { tag: { select: { id: true, title: true } } } }
+        const newContent = yield prismaClient_1.default.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
+            //advisory lock keyed on (collectionId, hyperlink), released at transaction end: serializes concurrent
+            //adds of the same link to the same collection so two racing requests can't both pass the duplicate
+            //check below before either has committed its insert (was reproducible: 5 concurrent identical
+            //requests all succeeded and created 5 duplicate rows)
+            yield tx.$executeRaw `SELECT pg_advisory_xact_lock(${collectionId}::int, hashtext(${hyperlink}))`;
+            //verifies the collection belongs to this user AND checks for a duplicate hyperlink in it, in one query
+            const collectionCheck = yield tx.collection.findFirst({
+                where: { id: collectionId, userId },
+                select: {
+                    content: {
+                        where: { content: { is: { hyperlink } } },
+                        select: { contentId: true },
+                        take: 1
+                    }
+                }
+            });
+            if (!collectionCheck) {
+                throw new ForbiddenCollectionError();
             }
-        });
+            if (collectionCheck.content.length !== 0) {
+                throw new DuplicateContentError();
+            }
+            //tags deduped and connected-or-created in the same write as the content, no separate lookup/insert round trips
+            return tx.content.create({
+                data: {
+                    title, hyperlink, note, type, userId,
+                    collection: { create: { collectionId } },
+                    tags: allTags.length !== 0 ? {
+                        create: allTags.map((tagTitle) => ({
+                            tag: { connectOrCreate: { where: { title: tagTitle }, create: { title: tagTitle } } }
+                        }))
+                    } : undefined
+                },
+                select: {
+                    id: true, title: true, hyperlink: true, note: true, createdAt: true, type: true,
+                    tags: { select: { tag: { select: { id: true, title: true } } } }
+                }
+            });
+        }), { timeout: 15000 });
         const tagsList = newContent.tags.map((t) => t.tag);
         const enrichedContent = Object.assign(Object.assign({}, newContent), { tags: tagsList, userId });
         res.status(200).json({
@@ -87,6 +85,25 @@ const addContent = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         });
     }
     catch (e) {
+        if (e instanceof ForbiddenCollectionError) {
+            res.status(403).json({
+                status: "failure",
+                payload: {
+                    message: "unAutherized access"
+                }
+            });
+            return;
+        }
+        if (e instanceof DuplicateContentError) {
+            console.log('user is trying to enter same link in the same collection multiple times');
+            res.status(400).json({
+                status: "failure",
+                payload: {
+                    message: "Duplicate entry by user"
+                }
+            });
+            return;
+        }
         (0, handleErrors_1.default)(e, res);
     }
 });
