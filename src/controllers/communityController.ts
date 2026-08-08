@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { generateHash } from "../utils/generateHash";
 import client from "../prismaClient";
-import bcrypt from 'bcryptjs';
+import { hash as bcryptHash } from '@node-rs/bcrypt';
 import handleError from "../utils/handleErrors";
 
 export const createCommunity = async (req: Request, res: Response) => {
@@ -11,7 +11,7 @@ export const createCommunity = async (req: Request, res: Response) => {
 
         const hash = generateHash();
 
-        const hashedPassword = await bcrypt.hash(password.trim(), 10)
+        const hashedPassword = await bcryptHash(password.trim(), 10)
 
         const createdCommunity = await client.community.create({
             data: {

@@ -22,6 +22,7 @@ const zodMiddleware_1 = require("./middlewares/zodMiddleware");
 const jwstAuth_1 = __importDefault(require("./middlewares/jwstAuth"));
 const me_1 = require("./controllers/me");
 const helmet_1 = __importDefault(require("helmet"));
+const compression_1 = __importDefault(require("compression"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const prismaClient_1 = __importDefault(require("./prismaClient"));
 dotenv_1.default.config();
@@ -52,6 +53,9 @@ app.use((0, cors_1.default)({
     maxAge: 86400,
 }));
 app.use((0, helmet_1.default)());
+//content pages ship a lot of repetitive JSON (titles, links, tag names) - gzip is a big win
+//on the wire and Render's proxy does not compress origin responses for us
+app.use((0, compression_1.default)());
 //no auth/DB work here on purpose - the frontend pings this on load to wake a sleeping Render dyno before the user reaches an actual request
 app.get('/health', (_req, res) => {
     res.status(200).send('ok');

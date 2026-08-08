@@ -12,7 +12,9 @@ router.post('/addcontent', zodAddContent,verifyJwt,addContent);
 
 router.post('/deletecontent', zodDeleteContent, verifyJwt,deleteContent );
 
-router.get('/fetchcontents', zodFetchContent,verifyJwt,checkContentCollectionReference, fetchContent);
+//no checkContentCollectionReference here: it cost a round trip to prove ownership that
+//fetchContent's own userId filter already enforces - a foreign collectionId just returns empty
+router.get('/fetchcontents', zodFetchContent,verifyJwt, fetchContent);
 
 router.patch('/generatelink',meZod,verifyJwt,checkContentCollectionReference,generateSharableLink);
 

@@ -14,12 +14,13 @@
   "description": "",
   "dependencies": {
     "@mozilla/readability": "^0.6.0",
+    "@node-rs/bcrypt": "^1.10.7",
     "@pinecone-database/pinecone": "^6.1.1",
     "@prisma/client": "^6.2.1",
     "axios": "^1.10.0",
-    "bcryptjs": "^3.0.3",
     "cheerio": "^1.1.0",
     "cohere-ai": "^7.17.1",
+    "compression": "^1.8.1",
     "cookie": "^1.0.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -32,6 +33,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@types/compression": "^1.8.1",
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.17",
     "@types/dotenv": "^6.1.1",

@@ -25,8 +25,6 @@ export const checkContentCollectionReference = async (req: Request, res: Respons
 
 
   if (checkCollUser === null) {
-    console.log(req.url)
-    console.log('collection does not belong to this user');
     res.status(403).json({
       status: "failure",
       payload: {
@@ -65,7 +63,6 @@ export const checkUserCommunityRelation = async (req: Request, res: Response, ne
     const isMember = user.memberOf.some(m => m.communityId === communityId);
 
     if (isFounder || isMember) {
-      console.log("middle ware passed")
       next();
       return;
     }

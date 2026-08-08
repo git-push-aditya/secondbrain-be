@@ -5,6 +5,7 @@ import { generateHash } from '../utils/generateHash';
 import client from '../prismaClient';
 import { Pinecone } from '@pinecone-database/pinecone';
 import { embedContent } from '../worker/worker';
+import { getUserLists } from '../utils/userLists';
 
 const pinecone = new Pinecone({
     apiKey: process.env.PINECONE_VDB_API_KEY || ''
@@ -135,7 +136,7 @@ export const deleteContent = async (req: Request, res: Response) => {
             where: { id: contentId },
             select: { id: true }
         })
-        console.log(deletedPost);
+
 
         await store._deleteOne(`${contentId}`); 
 
@@ -168,55 +169,55 @@ export const fetchContent = async (req: Request<{}, {}, fetchUserId>, res: Respo
 
     try {
 
-        const [count, contentRows] = await Promise.all([
-            client.content.count({
-                where: {
-                    collectionId,
-                    collection: { userId }
-                }
-            }),
-
-            client.content.findMany({
-                where: {
-                    collectionId,
-                    collection: { userId }
-                },
-                skip,
-                take: limit,
-                select: {
-                    id: true,
-                    title: true,
-                    hyperlink: true,
-                    note: true,
-                    createdAt: true,
-                    type: true,
-                    tags: {
-                        select: {
-                            tag: {
-                                select: {
-                                    id: true,
-                                    title: true
-                                }
+        /* Filters content.userId directly rather than through `collection: { userId }` - the
+           relation filter forced a join to collection on every page, and content already
+           carries userId (indexed). Ownership is still enforced: a collection belonging to
+           someone else matches no rows. */
+        const contentRows = await client.content.findMany({
+            where: {
+                collectionId,
+                userId
+            },
+            skip,
+            //one extra row is a cheaper "is there a next page" than a full count() over the
+            //collection, which previously ran on every single page request
+            take: limit + 1,
+            select: {
+                id: true,
+                title: true,
+                hyperlink: true,
+                note: true,
+                createdAt: true,
+                type: true,
+                tags: {
+                    select: {
+                        tag: {
+                            select: {
+                                id: true,
+                                title: true
                             }
                         }
                     }
-                },
-                orderBy: {
-                    createdAt: "desc"
                 }
-            })
-        ]);
+            },
+            orderBy: {
+                createdAt: "desc"
+            }
+        });
+
+        const more = contentRows.length > limit;
+        const pageRows = more ? contentRows.slice(0, limit) : contentRows;
 
         //shape kept identical to the old contentCollection-joined response ({collectionId, content} per row)
         //so the frontend doesn't need to change
-        const content = contentRows.map((row) => ({ collectionId, content: row }));
+        const content = pageRows.map((row) => ({ collectionId, content: row }));
 
         res.status(200).json({
             status: "success",
             payload: {
                 message: content.length === 0 ? "No content found" : "Contents found",
                 content,//data is in content.content
-                more: page * limit < count
+                more
             }
         })
 
@@ -437,7 +438,6 @@ export const pagedSharedConetnt = async (req: Request, res: Response) => {
 export const fetchTaggedContent = async (req: Request<{}, {}, taggedContent>, res: Response) => {
 
     const { tags, userId, union } = req.body;
-    console.log("reached");
     try {
         const tagIdArr = await client.tags.findMany({
             where: {
@@ -659,65 +659,8 @@ export const getCommCollList = async (req: Request, res: Response) => {
     const { userId } = req.body;
 
     try {
-        const [collectionList, tagsList, communitylist] = await Promise.all([
-            client.collection.findMany({
-                where: {
-                    userId: userId
-                },
-                select: {
-                    id: true,
-                    name: true,
-                    shared: true
-                }
-            }),
-
-            client.tags.findMany({
-                select: {
-                    title: true
-                }
-            }),
-
-            client.user.findMany({
-                where: {
-                    id: userId
-                },
-                select: {
-                    founded: {
-                        select: {
-                            name: true,
-                            id: true
-                        }
-                    },
-                    memberOf: {
-                        select: {
-                            community: {
-                                select: {
-                                    name: true,
-                                    id: true
-                                }
-                            }
-                        }
-                    }
-                }
-            })
-        ])
-
-
-
-        const list = communitylist[0];
-        const founded = (list.founded || []).map(community => ({
-            id: community.id,
-            name: community.name,
-            isFounder: true
-        }));
-        const memberOf = (list.memberOf || []).map(community => ({
-            id: community.community.id,
-            name: community.community.name,
-            isFounder: false
-        }));
-
-        const allCommunities = [...founded, ...memberOf];
-
+        //same payload the auth responses now embed - see utils/userLists
+        const { tagsList, collectionList, allCommunities } = await getUserLists(userId);
 
         res.status(200).json({
             status: "success",

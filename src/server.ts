@@ -7,6 +7,7 @@ import { meZod } from "./middlewares/zodMiddleware";
 import verifyJwt from "./middlewares/jwstAuth";
 import { restoreMe } from "./controllers/me";
 import helmet from 'helmet';
+import compression from 'compression';
 import dotenv from 'dotenv';
 import client from "./prismaClient"
 
@@ -46,6 +47,10 @@ app.use(cors({
 }));
 
 app.use(helmet());
+
+//content pages ship a lot of repetitive JSON (titles, links, tag names) - gzip is a big win
+//on the wire and Render's proxy does not compress origin responses for us
+app.use(compression());
 
 //no auth/DB work here on purpose - the frontend pings this on load to wake a sleeping Render dyno before the user reaches an actual request
 app.get('/health', (_req, res) => {

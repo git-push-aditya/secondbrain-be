@@ -32,8 +32,6 @@ const checkContentCollectionReference = (req, res, next) => __awaiter(void 0, vo
         }
     });
     if (checkCollUser === null) {
-        console.log(req.url);
-        console.log('collection does not belong to this user');
         res.status(403).json({
             status: "failure",
             payload: {
@@ -69,7 +67,6 @@ const checkUserCommunityRelation = (req, res, next) => __awaiter(void 0, void 0,
         const isFounder = user.founded.some(c => c.id === communityId);
         const isMember = user.memberOf.some(m => m.communityId === communityId);
         if (isFounder || isMember) {
-            console.log("middle ware passed");
             next();
             return;
         }

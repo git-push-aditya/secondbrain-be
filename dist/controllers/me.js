@@ -16,29 +16,30 @@ exports.restoreMe = void 0;
 const cookie_1 = require("cookie");
 const prismaClient_1 = __importDefault(require("../prismaClient"));
 const setCookies_1 = require("../utils/setCookies");
+const userLists_1 = require("../utils/userLists");
 const restoreMe = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const userId = req.body.userId;
-    const userDetails = yield prismaClient_1.default.user.findUnique({
-        where: {
-            id: userId
-        }, select: {
-            userName: true,
-            email: true,
-            profilePic: true
-        }
-    });
+    //session restore is the other entry point into the app, so it carries the lists too -
+    //otherwise a returning user still pays a serial /communitycollectionlist before any content
+    const [userDetails, lists] = yield Promise.all([
+        prismaClient_1.default.user.findUnique({
+            where: {
+                id: userId
+            }, select: {
+                userName: true,
+                email: true,
+                profilePic: true
+            }
+        }),
+        (0, userLists_1.getUserLists)(userId)
+    ]);
     if (userDetails) {
         const token = req.cookies['token'];
         res.setHeader('Set-Cookie', (0, cookie_1.serialize)('token', token, Object.assign(Object.assign({}, setCookies_1.cookieOptions), { maxAge: 60 * 60 * 24 })));
         res.setHeader("Cache-Control", "no-store");
         res.status(200).json({
             status: "success",
-            payload: {
-                message: " jwt verified, no need to login/up",
-                userName: userDetails.userName,
-                email: userDetails.email,
-                profilePic: userDetails.profilePic
-            }
+            payload: Object.assign({ message: " jwt verified, no need to login/up", userName: userDetails.userName, email: userDetails.email, profilePic: userDetails.profilePic }, lists)
         });
         return;
     }

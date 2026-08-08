@@ -19,6 +19,7 @@ const generateHash_1 = require("../utils/generateHash");
 const prismaClient_1 = __importDefault(require("../prismaClient"));
 const pinecone_1 = require("@pinecone-database/pinecone");
 const worker_1 = require("../worker/worker");
+const userLists_1 = require("../utils/userLists");
 const pinecone = new pinecone_1.Pinecone({
     apiKey: process.env.PINECONE_VDB_API_KEY || ''
 });
@@ -92,7 +93,6 @@ const deleteContent = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             where: { id: contentId },
             select: { id: true }
         });
-        console.log(deletedPost);
         yield store._deleteOne(`${contentId}`);
         res.status(200).json({
             status: "success",
@@ -117,52 +117,52 @@ const fetchContent = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     const page = parseInt(req.query.page) || 1;
     const skip = (page - 1) * limit;
     try {
-        const [count, contentRows] = yield Promise.all([
-            prismaClient_1.default.content.count({
-                where: {
-                    collectionId,
-                    collection: { userId }
-                }
-            }),
-            prismaClient_1.default.content.findMany({
-                where: {
-                    collectionId,
-                    collection: { userId }
-                },
-                skip,
-                take: limit,
-                select: {
-                    id: true,
-                    title: true,
-                    hyperlink: true,
-                    note: true,
-                    createdAt: true,
-                    type: true,
-                    tags: {
-                        select: {
-                            tag: {
-                                select: {
-                                    id: true,
-                                    title: true
-                                }
+        /* Filters content.userId directly rather than through `collection: { userId }` - the
+           relation filter forced a join to collection on every page, and content already
+           carries userId (indexed). Ownership is still enforced: a collection belonging to
+           someone else matches no rows. */
+        const contentRows = yield prismaClient_1.default.content.findMany({
+            where: {
+                collectionId,
+                userId
+            },
+            skip,
+            //one extra row is a cheaper "is there a next page" than a full count() over the
+            //collection, which previously ran on every single page request
+            take: limit + 1,
+            select: {
+                id: true,
+                title: true,
+                hyperlink: true,
+                note: true,
+                createdAt: true,
+                type: true,
+                tags: {
+                    select: {
+                        tag: {
+                            select: {
+                                id: true,
+                                title: true
                             }
                         }
                     }
-                },
-                orderBy: {
-                    createdAt: "desc"
                 }
-            })
-        ]);
+            },
+            orderBy: {
+                createdAt: "desc"
+            }
+        });
+        const more = contentRows.length > limit;
+        const pageRows = more ? contentRows.slice(0, limit) : contentRows;
         //shape kept identical to the old contentCollection-joined response ({collectionId, content} per row)
         //so the frontend doesn't need to change
-        const content = contentRows.map((row) => ({ collectionId, content: row }));
+        const content = pageRows.map((row) => ({ collectionId, content: row }));
         res.status(200).json({
             status: "success",
             payload: {
                 message: content.length === 0 ? "No content found" : "Contents found",
                 content, //data is in content.content
-                more: page * limit < count
+                more
             }
         });
     }
@@ -360,7 +360,6 @@ exports.pagedSharedConetnt = pagedSharedConetnt;
 //only change i want ot make is it returns collection name
 const fetchTaggedContent = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { tags, userId, union } = req.body;
-    console.log("reached");
     try {
         const tagIdArr = yield prismaClient_1.default.tags.findMany({
             where: {
@@ -559,58 +558,8 @@ exports.newCollection = newCollection;
 const getCommCollList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { userId } = req.body;
     try {
-        const [collectionList, tagsList, communitylist] = yield Promise.all([
-            prismaClient_1.default.collection.findMany({
-                where: {
-                    userId: userId
-                },
-                select: {
-                    id: true,
-                    name: true,
-                    shared: true
-                }
-            }),
-            prismaClient_1.default.tags.findMany({
-                select: {
-                    title: true
-                }
-            }),
-            prismaClient_1.default.user.findMany({
-                where: {
-                    id: userId
-                },
-                select: {
-                    founded: {
-                        select: {
-                            name: true,
-                            id: true
-                        }
-                    },
-                    memberOf: {
-                        select: {
-                            community: {
-                                select: {
-                                    name: true,
-                                    id: true
-                                }
-                            }
-                        }
-                    }
-                }
-            })
-        ]);
-        const list = communitylist[0];
-        const founded = (list.founded || []).map(community => ({
-            id: community.id,
-            name: community.name,
-            isFounder: true
-        }));
-        const memberOf = (list.memberOf || []).map(community => ({
-            id: community.community.id,
-            name: community.community.name,
-            isFounder: false
-        }));
-        const allCommunities = [...founded, ...memberOf];
+        //same payload the auth responses now embed - see utils/userLists
+        const { tagsList, collectionList, allCommunities } = yield (0, userLists_1.getUserLists)(userId);
         res.status(200).json({
             status: "success",
             payload: {

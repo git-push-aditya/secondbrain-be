@@ -13,7 +13,9 @@ const chatbot_1 = require("../controllers/chatbot");
 const router = (0, express_1.Router)();
 router.post('/addcontent', zodMiddleware_1.zodAddContent, jwstAuth_1.default, userController_1.addContent);
 router.post('/deletecontent', zodMiddleware_1.zodDeleteContent, jwstAuth_1.default, userController_1.deleteContent);
-router.get('/fetchcontents', zodMiddleware_1.zodFetchContent, jwstAuth_1.default, checkContentCollection_1.checkContentCollectionReference, userController_1.fetchContent);
+//no checkContentCollectionReference here: it cost a round trip to prove ownership that
+//fetchContent's own userId filter already enforces - a foreign collectionId just returns empty
+router.get('/fetchcontents', zodMiddleware_1.zodFetchContent, jwstAuth_1.default, userController_1.fetchContent);
 router.patch('/generatelink', zodMiddleware_1.meZod, jwstAuth_1.default, checkContentCollection_1.checkContentCollectionReference, userController_1.generateSharableLink);
 router.post('/createcollection', zodMiddleware_1.zodCreateCollection, jwstAuth_1.default, userController_1.newCollection);
 router.post('/deletecollection', zodMiddleware_1.meZod, jwstAuth_1.default, checkContentCollection_1.checkContentCollectionReference, userController_1.deleteCollection);

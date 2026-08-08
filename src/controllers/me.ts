@@ -2,18 +2,24 @@ import { Request, Response } from "express";
 import { serialize } from "cookie";
 import client from '../prismaClient';
 import { cookieOptions } from '../utils/setCookies';
+import { getUserLists } from '../utils/userLists';
 
-export const restoreMe = async (req : Request, res : Response) => { 
+export const restoreMe = async (req : Request, res : Response) => {
     const userId = req.body.userId;
-    const userDetails = await client.user.findUnique({
-        where:{
-            id : userId
-        },select:{
-            userName: true,
-            email: true,
-            profilePic : true
-        }
-    })
+    //session restore is the other entry point into the app, so it carries the lists too -
+    //otherwise a returning user still pays a serial /communitycollectionlist before any content
+    const [userDetails, lists] = await Promise.all([
+        client.user.findUnique({
+            where:{
+                id : userId
+            },select:{
+                userName: true,
+                email: true,
+                profilePic : true
+            }
+        }),
+        getUserLists(userId)
+    ]);
     if(userDetails){
 
         const token = req.cookies['token'];
@@ -28,7 +34,8 @@ export const restoreMe = async (req : Request, res : Response) => {
                 message :" jwt verified, no need to login/up",
                 userName : userDetails.userName,
                 email : userDetails.email,
-                profilePic : userDetails.profilePic
+                profilePic : userDetails.profilePic,
+                ...lists
             }
         })
         return;

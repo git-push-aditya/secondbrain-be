@@ -1,5 +1,8 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  //without this Prisma loads nested relations (content -> tags -> tag) with a second round
+  //trip after the parent rows return; relationJoins turns them into one LATERAL join
+  previewFeatures = ["relationJoins"]
 }
 
 datasource db {
@@ -62,6 +65,9 @@ model content {
   votes        voteLog[]
 
   @@index([userId])
+  //fetchContent filters by collection and orders by createdAt desc; without this the planner
+  //had to read every row in the collection and sort it before applying the page offset
+  @@index([collectionId, createdAt(sort: Desc)])
   @@unique([collectionId, hyperlink])
 }
 
