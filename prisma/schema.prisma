@@ -35,40 +35,42 @@ enum votevalue {
 }
 
 model user {
-  id         Int                @id @default(autoincrement())
-  userName   String             @unique
-  password   String
-  email      String?            @unique
-  createdAt  DateTime?          @default(now())
-  link       link[]
-  content    content[]
-  collection collection[]
-  founded    community[]        @relation("CommunityFounder")
-  memberOf   communityMembers[]
-  votes      voteLog[]
-  profilePic profilePic         @default(b1)
+  id           Int                @id @default(autoincrement())
+  userName     String             @unique
+  password     String
+  email        String?            @unique
+  createdAt    DateTime?          @default(now())
+  link         link[]
+  content      content[]
+  collection   collection[]
+  founded      community[]        @relation("CommunityFounder")
+  memberOf     communityMembers[]
+  votes        voteLog[]
+  profilePic   profilePic         @default(b1)
+  conversation conversation[]
 }
 
 model content {
-  id           Int                @id @default(autoincrement())
+  id           Int               @id @default(autoincrement())
   title        String
   hyperlink    String
   note         String?
-  createdAt    DateTime?          @default(now())
-  type         Type               @default(WEB)
-  user         user               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime?         @default(now())
+  type         Type              @default(WEB)
+  user         user              @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId       Int
   tags         ContentTags[]
   collectionId Int?
-  collection   collection?        @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  collection   collection?       @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   community    communityContent?
   votes        voteLog[]
+  messages     message[]
 
+  @@unique([collectionId, hyperlink])
   @@index([userId])
   //fetchContent filters by collection and orders by createdAt desc; without this the planner
   //had to read every row in the collection and sort it before applying the page offset
   @@index([collectionId, createdAt(sort: Desc)])
-  @@unique([collectionId, hyperlink])
 }
 
 model collection {
@@ -154,6 +156,39 @@ model communityContent {
   community community @relation(fields: [communityId], references: [id], onDelete: Cascade)
 
   @@unique([communityId, contentId])
+}
+
+//DeepDive chat history. Kept append-only per turn: the chatbot controller writes
+//both the user and assistant message rows (plus conversation.updatedAt) in a single
+//nested Prisma call so a chat turn costs at most 2 DB round trips total.
+model conversation {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  title     String    @default("New Chat")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      user      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  message[]
+
+  @@index([userId, updatedAt(sort: Desc)])
+}
+
+enum MessageRole {
+  user
+  assistant
+}
+
+model message {
+  id             Int          @id @default(autoincrement())
+  conversationId Int
+  role           MessageRole
+  content        String
+  contentRefId   Int?
+  createdAt      DateTime     @default(now())
+  conversation   conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  contentRef     content?     @relation(fields: [contentRefId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId, createdAt])
 }
 
 model voteLog {

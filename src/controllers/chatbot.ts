@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { CohereClientV2, CohereClient } from "cohere-ai";
 import { Pinecone } from '@pinecone-database/pinecone';
 import client from "../prismaClient";
+import handleError from "../utils/handleErrors";
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -70,14 +71,37 @@ const buildContextString = (context: string, score: number, cardData: cardData |
 
 export const chatbot = async (req: Request, res: Response) => {
   try {
-    const { lastSevenMessages, userId } = req.body;
+    const { conversationId, content: userQuery, userId } = req.body;
 
-    const refindMessages = lastSevenMessages.map((el: any) => ({
-      role: el.role,
-      content: el.content,
-    }));
+    // one round trip: doubles as the ownership check (missing/foreign id -> null,
+    // same as checkContentCollectionReference's reasoning elsewhere) and loads
+    // just enough history for multi-turn context
+    const existingConversation = conversationId
+      ? await client.conversation.findFirst({
+          where: { id: conversationId, userId },
+          include: { messages: { orderBy: { createdAt: 'desc' }, take: 12 } },
+        })
+      : null;
 
-    const userQuery = refindMessages[refindMessages.length - 1].content;
+    if (conversationId && !existingConversation) {
+      res.status(404).json({
+        status: "failure",
+        payload: { message: "Conversation not found" },
+      });
+      return;
+    }
+
+    const history: { role: "user" | "assistant"; content: string }[] = existingConversation
+      ? existingConversation.messages
+          .slice()
+          .reverse()
+          .map((m) => ({ role: m.role, content: m.content }))
+      : [];
+
+    const refindMessages: { role: "user" | "assistant"; content: string }[] = [
+      ...history,
+      { role: "user", content: userQuery },
+    ];
 
     const embed = await embedClient.v2.embed({
       texts: [userQuery],
@@ -139,7 +163,7 @@ export const chatbot = async (req: Request, res: Response) => {
       context = buildContextString(rawContext as string, score ?? 0, contentData);
     }
     
-    const userMessege = context !== null ? [{
+    const userMessege: { role: "user" | "assistant"; content: string }[] = context !== null ? [{
       role : "user",
       content : userQuery
     } ]: refindMessages;
@@ -155,16 +179,41 @@ export const chatbot = async (req: Request, res: Response) => {
       ],
     }); 
 
+    const replyText = response.message?.content?.[0]?.text ?? "Sorry, I wasn't able to generate a response";
+    const matchedContentId = (score ?? 0) > 0.25 ? contentData?.id ?? null : null;
+
+    const messagesToWrite = [
+      { role: "user" as const, content: userQuery },
+      { role: "assistant" as const, content: replyText, contentRefId: matchedContentId },
+    ];
+
+    // single nested write either way: creates/updates the conversation and both
+    // message rows in one round trip, never two sequential message.create calls
+    const conversation = existingConversation
+      ? await client.conversation.update({
+          where: { id: existingConversation.id },
+          data: {
+            updatedAt: new Date(),
+            messages: { createMany: { data: messagesToWrite } },
+          },
+        })
+      : await client.conversation.create({
+          data: {
+            userId,
+            title: userQuery.slice(0, 60),
+            messages: { createMany: { data: messagesToWrite } },
+          },
+        });
+
     res.status(200).json({
       status: "success",
       payload: {
-        chatId: response.id,
-        message: response.message?.content?.[0]?.text ?? "Sorry, I wasn't able to generate a response",
-        content: (score ?? 0) > 0.25 ? contentData : null
+        conversationId: conversation.id,
+        message: replyText,
+        content: matchedContentId !== null ? contentData : null
       },
     });
   } catch (err) {
-    console.error("Some error occured here : ", err)
-    res.status(500).json({ status: "error", payload: { message: "Internal Server Error" } });
+    handleError(err, res);
   }
 };

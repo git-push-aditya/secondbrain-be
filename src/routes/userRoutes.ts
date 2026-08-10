@@ -1,10 +1,11 @@
 import {Router} from 'express';
 import verifyJwt from '../middlewares/jwstAuth'
-import {zodAddContent, zodDeleteContent, meZod, zodSharableLink, zodTaggedContent, zodCreateCollection, zodFetchContent, zodSharedContent, zodCreateCommunity, zodBasicCommunity, zodjoinCommunity, zodVote, zodChatBot} from '../middlewares/zodMiddleware';
+import {zodAddContent, zodDeleteContent, meZod, zodSharableLink, zodTaggedContent, zodCreateCollection, zodFetchContent, zodSharedContent, zodCreateCommunity, zodBasicCommunity, zodjoinCommunity, zodVote, zodChatBot, zodGetConversation} from '../middlewares/zodMiddleware';
 import { addContent, deleteCollection, deleteContent, deleteSharedLink, fetchContent, fetchTaggedContent, generateSharableLink, getCommCollList, newCollection, pagedSharedConetnt, sharedContent } from '../controllers/userController';
 import { checkContentCollectionReference, checkContentCommunityRelation, checkUserCommunityRelation, verifyExistingCommunityHash } from '../middlewares/checkContentCollection';
 import { addCommunityContent, createCommunity, fetchCommunityContent, getUserList, joinCommunity, shareLogin, upVoteDownVote } from '../controllers/communityController';
 import { chatbot } from '../controllers/chatbot';
+import { getConversations, getConversation } from '../controllers/conversations';
 
 const router = Router();      
 
@@ -59,6 +60,12 @@ router.post('/addcommunitycontent', zodAddContent, verifyJwt,checkUserCommunityR
 
 
 router.post('/chatbot',zodChatBot,verifyJwt,chatbot);
+
+//no separate ownership middleware here either - see comment in chatbot.ts/conversations.ts,
+//the controllers' own userId-scoped queries already do that check in the same round trip
+router.get('/conversations',meZod,verifyJwt,getConversations);
+
+router.get('/conversation',zodGetConversation,verifyJwt,getConversation);
 
 
 export default router;

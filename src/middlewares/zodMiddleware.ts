@@ -430,39 +430,68 @@ export const zodVote = ( req: Request, res : Response , next : NextFunction) => 
 
 export const zodChatBot = ( req: Request, res : Response , next : NextFunction) => {
     const requiredBody = z.object({
-        lastSevenMessages : z.array(
-            z.object({
-                role : z.enum(['user' , 'assistant']),
-                content : z.string(),
-                toStream : z.boolean()
-            })
-        )
+        conversationId : z.coerce.number().int().positive().optional(),
+        content : z.string().min(1)
     })
     const cookieCheck = requiredCookie.safeParse(req.cookies);
 
     const bodyCheck = requiredBody.safeParse(req.body);
 
-    if(cookieCheck.success && bodyCheck.success){ 
-        next(); 
+    if(cookieCheck.success && bodyCheck.success){
+        next();
         return;
     }else if(!cookieCheck.success){
-        console.error("session logout"); 
+        console.error("session logout");
         res.status(401).json({
             status : "failure",
             payload : {
                 message : "Session timed out, re-login"
             }
         })
-    }else{ 
-        console.error("Passed parameters are invalid"); 
+    }else{
+        console.error("Passed parameters are invalid");
         res.status(400).json({
             status : "failure",
             payload  : {
-                message : "Passed parameters for voting are invalid"
+                message : "Passed parameters for chat are invalid"
 
             }
         })
-    } 
+    }
     return;
-    
+
+}
+
+
+export const zodGetConversation = ( req: Request, res : Response , next : NextFunction) => {
+    const requiredQuery = z.object({
+        conversationId : z.coerce.number().int().positive()
+    })
+    const cookieCheck = requiredCookie.safeParse(req.cookies);
+
+    const queryCheck = requiredQuery.safeParse(req.query);
+
+    if(cookieCheck.success && queryCheck.success){
+        next();
+        return;
+    }else if(!cookieCheck.success){
+        console.error("session logout");
+        res.status(401).json({
+            status : "failure",
+            payload : {
+                message : "Session timed out, re-login"
+            }
+        })
+    }else{
+        console.error("Passed parameters are invalid");
+        res.status(400).json({
+            status : "failure",
+            payload  : {
+                message : "conversationId is required"
+
+            }
+        })
+    }
+    return;
+
 }
