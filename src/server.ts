@@ -27,7 +27,7 @@ const app = express();
 
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://lattice.notaditya.dev',
+  'https://lattice.adityad.in',
   ...(process.env.ALLOWED_ORIGINS?.split(',').map(origin => origin.trim()).filter(Boolean) || [])
 ];
 
