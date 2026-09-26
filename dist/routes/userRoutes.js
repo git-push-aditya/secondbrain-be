@@ -10,6 +10,7 @@ const userController_1 = require("../controllers/userController");
 const checkContentCollection_1 = require("../middlewares/checkContentCollection");
 const communityController_1 = require("../controllers/communityController");
 const chatbot_1 = require("../controllers/chatbot");
+const conversations_1 = require("../controllers/conversations");
 const router = (0, express_1.Router)();
 router.post('/addcontent', zodMiddleware_1.zodAddContent, jwstAuth_1.default, userController_1.addContent);
 router.post('/deletecontent', zodMiddleware_1.zodDeleteContent, jwstAuth_1.default, userController_1.deleteContent);
@@ -36,4 +37,8 @@ router.post('/getmembers', zodMiddleware_1.zodBasicCommunity, jwstAuth_1.default
 router.post('/addcommunitycontent', zodMiddleware_1.zodAddContent, jwstAuth_1.default, checkContentCollection_1.checkUserCommunityRelation, communityController_1.addCommunityContent);
 ////////////////////////////////
 router.post('/chatbot', zodMiddleware_1.zodChatBot, jwstAuth_1.default, chatbot_1.chatbot);
+//no separate ownership middleware here either - see comment in chatbot.ts/conversations.ts,
+//the controllers' own userId-scoped queries already do that check in the same round trip
+router.get('/conversations', zodMiddleware_1.meZod, jwstAuth_1.default, conversations_1.getConversations);
+router.get('/conversation', zodMiddleware_1.zodGetConversation, jwstAuth_1.default, conversations_1.getConversation);
 exports.default = router;
